@@ -1,0 +1,2 @@
+# Keep the data files byte-for-byte as downloaded (BULK INSERT reads them directly).
+datasets/** -text

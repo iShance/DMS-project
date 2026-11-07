@@ -1,0 +1,11 @@
+crop_key,crop_name,fao_item_code,crop_group
+1,Cassava,125,Roots & Tubers
+2,Maize,56,Cereals
+3,Plantains and others,489,Starchy Fruits
+4,Potatoes,116,Roots & Tubers
+5,"Rice, paddy",27,Cereals
+6,Sorghum,83,Cereals
+7,Soybeans,236,Oilseeds
+8,Sweet potatoes,122,Roots & Tubers
+9,Wheat,15,Cereals
+10,Yams,137,Roots & Tubers

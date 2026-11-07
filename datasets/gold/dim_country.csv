@@ -1,0 +1,120 @@
+country_key,country_name,iso3,region,temp_normal_c,rainfall_normal_mm
+1,Albania,ALB,Europe & Central Asia,15.688666666666668,1485.0
+2,Algeria,DZA,Middle East & North Africa,16.637333333333334,89.0
+3,Angola,AGO,Sub-Saharan Africa,23.876333333333335,1010.0
+4,Argentina,ARG,Latin America & Caribbean,17.418333333333333,590.0645161290323
+5,Armenia,ARM,Europe & Central Asia,8.842,562.0
+6,Australia,AUS,East Asia & Pacific,16.165166666666668,534.0
+7,Austria,AUT,Europe & Central Asia,8.276,1110.0
+8,Azerbaijan,AZE,Europe & Central Asia,11.616333333333335,447.0
+9,Bahamas,BHS,Latin America & Caribbean,25.056333333333335,1292.0
+10,Bahrain,BHR,Middle East & North Africa,26.053333333333335,83.0
+11,Bangladesh,BGD,South Asia,25.887999999999998,2666.0
+12,Belarus,BLR,Europe & Central Asia,5.6866666666666665,618.0
+13,Belgium,BEL,Europe & Central Asia,10.071333333333332,847.0
+14,Bolivia,BOL,Latin America & Caribbean,9.094666666666665,1146.0
+15,Botswana,BWA,Sub-Saharan Africa,19.288,416.0
+16,Brazil,BRA,Latin America & Caribbean,22.163999999999998,1761.0
+17,Bulgaria,BGR,Europe & Central Asia,8.656,608.0
+18,Burkina Faso,BFA,Sub-Saharan Africa,28.284333333333333,748.0
+19,Burundi,BDI,Sub-Saharan Africa,20.93766666666666,1274.0
+20,Cameroon,CMR,Sub-Saharan Africa,24.777,1604.0
+21,Canada,CAN,North America,6.3395,537.0
+22,Central African Republic,CAF,Sub-Saharan Africa,25.061999999999998,1342.0
+23,Chile,CHL,Latin America & Caribbean,9.466833333333334,1522.0
+24,China,CHN,East Asia & Pacific,12.890333333333334,645.0
+25,Colombia,COL,Latin America & Caribbean,24.556833333333326,3240.0
+26,Congo,COG,Sub-Saharan Africa,24.04066666666667,1646.0
+27,Croatia,HRV,Europe & Central Asia,9.631,1113.0
+28,Czechia,CZE,Europe & Central Asia,8.504,677.0
+29,Côte d'Ivoire,CIV,Sub-Saharan Africa,26.105000000000004,1348.0
+30,Denmark,DNK,Europe & Central Asia,8.138333333333332,703.0
+31,Dominican Republic,DOM,Latin America & Caribbean,26.307833333333335,1410.0
+32,Ecuador,ECU,Latin America & Caribbean,20.14622222222222,2274.0
+33,Egypt,EGY,Middle East & North Africa,21.029833333333332,51.0
+34,El Salvador,SLV,Latin America & Caribbean,25.66766666666667,1784.0
+35,Eritrea,ERI,Sub-Saharan Africa,24.031000000000006,383.0
+36,Estonia,EST,Europe & Central Asia,5.203666666666667,626.0
+37,Finland,FIN,Europe & Central Asia,4.551,536.0
+38,France,FRA,Europe & Central Asia,10.583,867.0
+39,Germany,DEU,Europe & Central Asia,7.548666666666667,700.0
+40,Ghana,GHA,Sub-Saharan Africa,26.514333333333337,1187.0
+41,Greece,GRC,Europe & Central Asia,17.567,652.0
+42,Guatemala,GTM,Latin America & Caribbean,19.49233333333333,1996.0
+43,Guinea,GIN,Sub-Saharan Africa,26.831666666666663,1651.0
+44,Guinea-Bissau,GNB,Sub-Saharan Africa,27.305,1577.0
+45,Guyana,GUY,Latin America & Caribbean,26.862000000000002,2387.0
+46,Haiti,HTI,Latin America & Caribbean,26.777000000000005,1440.0
+47,Honduras,HND,Latin America & Caribbean,24.192333333333337,1976.0
+48,Hungary,HUN,Europe & Central Asia,9.997333333333332,589.0
+49,India,IND,South Asia,25.59486363636364,1110.6451612903227
+50,Indonesia,IDN,East Asia & Pacific,26.532888888888884,2702.0
+51,Iran,IRN,Middle East & North Africa,14.110444444444445,228.0
+52,Iraq,IRQ,Middle East & North Africa,21.207166666666662,216.0
+53,Ireland,IRL,Europe & Central Asia,8.847666666666665,1118.0
+54,Italy,ITA,Europe & Central Asia,9.577333333333332,832.0
+55,Jamaica,JAM,Latin America & Caribbean,26.945999999999994,2051.0
+56,Japan,JPN,East Asia & Pacific,14.362722222222223,1668.0
+57,Kazakhstan,KAZ,Europe & Central Asia,4.522166666666666,250.0
+58,Kenya,KEN,Sub-Saharan Africa,16.21,630.0
+59,Laos,LAO,East Asia & Pacific,24.422,1834.0
+60,Latvia,LVA,Europe & Central Asia,5.563333333333334,641.0
+61,Lebanon,LBN,Middle East & North Africa,19.214,661.0
+62,Lesotho,LSO,Sub-Saharan Africa,14.368999999999998,788.0
+63,Libya,LBY,Middle East & North Africa,19.3965,56.0
+64,Lithuania,LTU,Europe & Central Asia,5.789,656.0
+65,Madagascar,MDG,Sub-Saharan Africa,19.373333333333335,1513.0
+66,Malawi,MWI,Sub-Saharan Africa,20.142,1181.0
+67,Malaysia,MYS,East Asia & Pacific,26.887999999999998,2875.0
+68,Mali,MLI,Sub-Saharan Africa,27.22066666666667,282.0
+69,Mauritania,MRT,Sub-Saharan Africa,27.235,92.0
+70,Mauritius,MUS,Sub-Saharan Africa,23.698666666666668,2041.0
+71,Mexico,MEX,Latin America & Caribbean,19.929458333333336,758.0
+72,Moldova,MDA,Europe & Central Asia,9.115333333333332,450.0
+73,Montenegro,MNE,Europe & Central Asia,10.382333333333332,241.0
+74,Morocco,MAR,Middle East & North Africa,17.45233333333334,346.0
+75,Mozambique,MOZ,Sub-Saharan Africa,21.47966666666666,1032.0
+76,Namibia,NAM,Sub-Saharan Africa,19.88466666666666,285.0
+77,Nepal,NPL,South Asia,14.899000000000001,1500.0
+78,Netherlands,NLD,Europe & Central Asia,9.329666666666666,778.0
+79,New Zealand,NZL,East Asia & Pacific,13.026000000000002,1732.0
+80,Nicaragua,NIC,Latin America & Caribbean,26.625666666666667,2280.0
+81,Niger,NER,Sub-Saharan Africa,29.269000000000002,151.0
+82,North Macedonia,MKD,Europe & Central Asia,9.735666666666667,619.0
+83,Norway,NOR,Europe & Central Asia,2.5469999999999997,1414.0
+84,Pakistan,PAK,South Asia,23.71285185185185,494.0
+85,Papua New Guinea,PNG,East Asia & Pacific,25.043000000000003,3142.0
+86,Peru,PER,Latin America & Caribbean,16.947666666666667,1738.0
+87,Poland,POL,Europe & Central Asia,7.6416666666666675,600.0
+88,Portugal,PRT,Europe & Central Asia,15.730999999999996,854.0
+89,Qatar,QAT,Middle East & North Africa,27.017666666666663,74.0
+90,Romania,ROU,Europe & Central Asia,11.102,637.0
+91,Russia,RUS,Europe & Central Asia,3.100666666666667,460.0
+92,Rwanda,RWA,Sub-Saharan Africa,19.233333333333334,1212.0
+93,Saudi Arabia,SAU,Middle East & North Africa,25.62266666666666,59.0
+94,Senegal,SEN,Sub-Saharan Africa,24.851999999999997,686.0
+95,Slovakia,SVK,Europe & Central Asia,10.069333333333333,824.0
+96,Slovenia,SVN,Europe & Central Asia,9.631,1162.0
+97,South Africa,ZAF,Sub-Saharan Africa,17.513333333333335,495.0
+98,South Korea,KOR,East Asia & Pacific,10.968,1274.0
+99,Spain,ESP,Europe & Central Asia,14.872000000000003,636.0
+100,Sri Lanka,LKA,South Asia,26.276,1712.0
+101,Sudan,SDN,Sub-Saharan Africa,27.53366666666666,1712.0
+102,Suriname,SUR,Latin America & Caribbean,26.718,2331.0
+103,Sweden,SWE,Europe & Central Asia,6.582333333333334,624.0
+104,Switzerland,CHE,Europe & Central Asia,7.063666666666667,1537.0
+105,Syria,SYR,Middle East & North Africa,18.650333333333332,252.0
+106,Tajikistan,TJK,Europe & Central Asia,7.708666666666667,691.0
+107,Tanzania,TZA,Sub-Saharan Africa,25.827999999999992,1071.0
+108,Thailand,THA,East Asia & Pacific,27.525666666666666,1622.0
+109,Tunisia,TUN,Middle East & North Africa,18.61466666666667,207.0
+110,Turkey,TUR,Europe & Central Asia,14.536533333333335,593.0
+111,Uganda,UGA,Sub-Saharan Africa,23.379,1180.0
+112,Ukraine,UKR,Europe & Central Asia,7.370666666666667,565.0
+113,United Kingdom,GBR,Europe & Central Asia,8.904866666666667,1220.0
+114,United States,USA,North America,14.529211538461539,715.0
+115,Uruguay,URY,Latin America & Caribbean,16.621,1300.0
+116,Venezuela,VEN,Latin America & Caribbean,26.1072,2044.0
+117,Vietnam,VNM,East Asia & Pacific,24.68333333333333,1821.0
+118,Zambia,ZMB,Sub-Saharan Africa,20.59033333333333,1020.0
+119,Zimbabwe,ZWE,Sub-Saharan Africa,20.378333333333334,657.0

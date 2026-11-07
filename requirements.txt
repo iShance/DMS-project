@@ -1,0 +1,13 @@
+# Tested with Python 3.13 and the versions in brackets.
+pandas>=2.2          # [3.1.0]
+numpy>=1.26          # [2.5.4]
+scikit-learn>=1.4    # [1.9.1]
+mlxtend>=0.23        # [0.25.0]
+matplotlib>=3.10     # [3.11.2]
+nbformat>=5.9
+nbconvert>=7.0
+ipykernel>=6.29
+jupyterlab>=4.0
+
+# Optional: read the Gold layer straight from SQL Server (agripulse.data, source="sql")
+# pyodbc>=5.0
