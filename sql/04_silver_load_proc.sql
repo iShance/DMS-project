@@ -21,6 +21,11 @@ cleaned rows. Cleaning rules (the pandas mirror is src/agripulse/pipeline.py):
     temperature   several city records per country-year -> averaged
     pesticides    only Use / Pesticides (total); negative values dropped
 
+Every Bronze row that is not kept goes to silver.reject_log with the rule it
+failed, so for each source  Bronze rows = rows kept + rows rejected  (rows
+that are averaged into one country-year are kept, not rejected). Each Silver
+table writes one row to audit.load_log.
+
 Usage
     EXEC silver.load_silver;
 =============================================================================
@@ -34,7 +39,9 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @batch_id UNIQUEIDENTIFIER = NEWID();
     DECLARE @start_time DATETIME2, @batch_start DATETIME2;
+    DECLARE @rows BIGINT, @rejected BIGINT, @target NVARCHAR(200), @source NVARCHAR(200);
 
     BEGIN TRY
         SET @batch_start = SYSDATETIME();
@@ -42,50 +49,86 @@ BEGIN
         PRINT 'Loading Silver layer';
         PRINT '================================================';
 
+        TRUNCATE TABLE silver.reject_log;
+
         ---------------------------------------------------------------
         -- silver.country
         ---------------------------------------------------------------
-        SET @start_time = SYSDATETIME();
+        SELECT @start_time = SYSDATETIME(), @target = 'silver.country', @source = 'bronze.ref_country';
         TRUNCATE TABLE silver.country;
+        DROP TABLE IF EXISTS #country;
+
+        SELECT
+            TRIM(country_name)                                AS country_name,
+            UPPER(TRIM(iso3))                                 AS iso3,
+            NULLIF(TRIM(REPLACE(region, CHAR(13), '')), '')   AS region,
+            ROW_NUMBER() OVER (PARTITION BY TRIM(country_name) ORDER BY (SELECT NULL)) AS rn
+        INTO #country
+        FROM bronze.ref_country;
+
         INSERT INTO silver.country (country_name, iso3, region)
         SELECT country_name, iso3, region
-        FROM (
-            SELECT
-                TRIM(country_name)                                AS country_name,
-                UPPER(TRIM(iso3))                                 AS iso3,
-                NULLIF(TRIM(REPLACE(region, CHAR(13), '')), '')   AS region,
-                ROW_NUMBER() OVER (PARTITION BY TRIM(country_name) ORDER BY (SELECT NULL)) AS rn
-            FROM bronze.ref_country
-            WHERE NULLIF(TRIM(country_name), '') IS NOT NULL
-        ) t
-        WHERE rn = 1;
-        PRINT '>> silver.country: ' + CAST(@@ROWCOUNT AS NVARCHAR(20)) + ' rows ('
-            + CAST(DATEDIFF(MILLISECOND, @start_time, SYSDATETIME()) AS NVARCHAR(20)) + ' ms)';
+        FROM #country
+        WHERE NULLIF(country_name, '') IS NOT NULL AND rn = 1;
+        SET @rows = @@ROWCOUNT;
+
+        INSERT INTO silver.reject_log (source_table, business_key, column_name, raw_value, reason)
+        SELECT @source, country_name, 'country_name', country_name,
+               CASE WHEN NULLIF(country_name, '') IS NULL THEN 'missing country_name'
+                    ELSE 'duplicate country_name (first row kept)' END
+        FROM #country
+        WHERE NULLIF(country_name, '') IS NULL OR rn > 1;
+        SET @rejected = @@ROWCOUNT;
+
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, rows_loaded, rows_rejected, status)
+        VALUES (@batch_id, 'silver.load_silver', @source, @target,
+                @start_time, SYSDATETIME(), @rows, @rejected, 'SUCCESS');
+        PRINT '>> silver.country: ' + CAST(@rows AS NVARCHAR(20)) + ' rows, '
+            + CAST(@rejected AS NVARCHAR(20)) + ' rejected';
 
         ---------------------------------------------------------------
         -- silver.country_alias
         ---------------------------------------------------------------
-        SET @start_time = SYSDATETIME();
+        SELECT @start_time = SYSDATETIME(), @target = 'silver.country_alias', @source = 'bronze.ref_country_alias';
         TRUNCATE TABLE silver.country_alias;
+        DROP TABLE IF EXISTS #alias;
+
+        SELECT
+            TRIM(source_name)                          AS source_name,
+            TRIM(REPLACE(country_name, CHAR(13), ''))  AS country_name,
+            ROW_NUMBER() OVER (PARTITION BY TRIM(source_name) ORDER BY (SELECT NULL)) AS rn
+        INTO #alias
+        FROM bronze.ref_country_alias;
+
         INSERT INTO silver.country_alias (source_name, country_name)
         SELECT source_name, country_name
-        FROM (
-            SELECT
-                TRIM(source_name)                          AS source_name,
-                TRIM(REPLACE(country_name, CHAR(13), ''))  AS country_name,
-                ROW_NUMBER() OVER (PARTITION BY TRIM(source_name) ORDER BY (SELECT NULL)) AS rn
-            FROM bronze.ref_country_alias
-            WHERE NULLIF(TRIM(source_name), '') IS NOT NULL
-        ) t
-        WHERE rn = 1;
-        PRINT '>> silver.country_alias: ' + CAST(@@ROWCOUNT AS NVARCHAR(20)) + ' rows ('
-            + CAST(DATEDIFF(MILLISECOND, @start_time, SYSDATETIME()) AS NVARCHAR(20)) + ' ms)';
+        FROM #alias
+        WHERE NULLIF(source_name, '') IS NOT NULL AND rn = 1;
+        SET @rows = @@ROWCOUNT;
+
+        INSERT INTO silver.reject_log (source_table, business_key, column_name, raw_value, reason)
+        SELECT @source, source_name, 'source_name', source_name,
+               CASE WHEN NULLIF(source_name, '') IS NULL THEN 'missing source_name'
+                    ELSE 'duplicate source_name (first row kept)' END
+        FROM #alias
+        WHERE NULLIF(source_name, '') IS NULL OR rn > 1;
+        SET @rejected = @@ROWCOUNT;
+
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, rows_loaded, rows_rejected, status)
+        VALUES (@batch_id, 'silver.load_silver', @source, @target,
+                @start_time, SYSDATETIME(), @rows, @rejected, 'SUCCESS');
+        PRINT '>> silver.country_alias: ' + CAST(@rows AS NVARCHAR(20)) + ' rows, '
+            + CAST(@rejected AS NVARCHAR(20)) + ' rejected';
 
         ---------------------------------------------------------------
         -- silver.fao_yield
         ---------------------------------------------------------------
-        SET @start_time = SYSDATETIME();
+        SELECT @start_time = SYSDATETIME(), @target = 'silver.fao_yield', @source = 'bronze.fao_yield';
         TRUNCATE TABLE silver.fao_yield;
+        DROP TABLE IF EXISTS #yield;
+
         WITH typed AS (
             SELECT
                 TRIM(area)                                                       AS source_area,
@@ -95,25 +138,37 @@ BEGIN
                 TRY_CAST(NULLIF(TRIM(year), '') AS INT)                          AS year,
                 TRY_CAST(NULLIF(TRIM(REPLACE(value, CHAR(13), '')), '') AS DECIMAL(18,2)) AS yield_hg_ha,
                 TRIM(element)                                                    AS element,
-                TRIM(unit)                                                       AS unit
+                TRIM(unit)                                                       AS unit,
+                TRIM(area_code)                                                  AS raw_area_code,
+                TRIM(year)                                                       AS raw_year,
+                TRIM(REPLACE(value, CHAR(13), ''))                               AS raw_value
             FROM bronze.fao_yield
         ),
-        conformed AS (
+        classified AS (
             SELECT
                 COALESCE(a.country_name, t.source_area) AS country_name,
                 t.*,
-                ROW_NUMBER() OVER (
-                    PARTITION BY COALESCE(a.country_name, t.source_area), t.crop_name, t.year
-                    ORDER BY t.fao_area_code
-                ) AS rn
+                CASE
+                    WHEN ISNULL(t.element, '') <> 'Yield' OR ISNULL(t.unit, '') <> 'hg/ha'
+                                                        THEN 'element'
+                    WHEN t.year IS NULL                 THEN 'year'
+                    WHEN t.fao_area_code = 351          THEN 'area_code'   -- FAO "China" aggregate
+                    WHEN ISNULL(t.yield_hg_ha, 0) <= 0  THEN 'value'
+                END AS failed_column
             FROM typed t
             LEFT JOIN silver.country_alias a ON a.source_name = t.source_area
-            WHERE t.element = 'Yield'
-              AND t.unit = 'hg/ha'
-              AND ISNULL(t.fao_area_code, -1) <> 351   -- FAO "China" aggregate
-              AND t.year IS NOT NULL
-              AND t.yield_hg_ha > 0
         )
+        SELECT
+            *,
+            -- de-duplication only among rows that passed the rules above
+            CASE WHEN failed_column IS NULL THEN
+                ROW_NUMBER() OVER (
+                    PARTITION BY failed_column, country_name, crop_name, year
+                    ORDER BY fao_area_code)
+            END AS rn
+        INTO #yield
+        FROM classified;
+
         INSERT INTO silver.fao_yield (
             country_name, source_area, fao_area_code, crop_name, fao_item_code,
             crop_group, year, yield_hg_ha
@@ -133,15 +188,45 @@ BEGIN
             END AS crop_group,
             year,
             yield_hg_ha
-        FROM conformed
-        WHERE rn = 1;
-        PRINT '>> silver.fao_yield: ' + CAST(@@ROWCOUNT AS NVARCHAR(20)) + ' rows ('
+        FROM #yield
+        WHERE failed_column IS NULL AND rn = 1;
+        SET @rows = @@ROWCOUNT;
+
+        INSERT INTO silver.reject_log (source_table, business_key, column_name, raw_value, reason)
+        SELECT
+            @source,
+            CONCAT(source_area, ' | ', crop_name, ' | ', raw_year),
+            ISNULL(failed_column, 'area'),
+            CASE failed_column
+                WHEN 'element'   THEN CONCAT(element, ' / ', unit)
+                WHEN 'year'      THEN raw_year
+                WHEN 'area_code' THEN raw_area_code
+                WHEN 'value'     THEN raw_value
+                ELSE source_area
+            END,
+            CASE failed_column
+                WHEN 'element'   THEN 'not a yield record (element / unit)'
+                WHEN 'year'      THEN 'missing or invalid year'
+                WHEN 'area_code' THEN 'FAO China aggregate (area 351) double counts its parts'
+                WHEN 'value'     THEN 'missing or zero yield (FAO missing record)'
+                ELSE 'duplicate country x crop x year after name conforming (lowest area code kept)'
+            END
+        FROM #yield
+        WHERE failed_column IS NOT NULL OR rn > 1;
+        SET @rejected = @@ROWCOUNT;
+
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, rows_loaded, rows_rejected, status)
+        VALUES (@batch_id, 'silver.load_silver', @source, @target,
+                @start_time, SYSDATETIME(), @rows, @rejected, 'SUCCESS');
+        PRINT '>> silver.fao_yield: ' + CAST(@rows AS NVARCHAR(20)) + ' rows, '
+            + CAST(@rejected AS NVARCHAR(20)) + ' rejected ('
             + CAST(DATEDIFF(MILLISECOND, @start_time, SYSDATETIME()) AS NVARCHAR(20)) + ' ms)';
 
         ---------------------------------------------------------------
         -- silver.wb_rainfall
         ---------------------------------------------------------------
-        SET @start_time = SYSDATETIME();
+        SELECT @start_time = SYSDATETIME(), @target = 'silver.wb_rainfall', @source = 'bronze.wb_rainfall';
         TRUNCATE TABLE silver.wb_rainfall;
         WITH typed AS (
             SELECT
@@ -184,13 +269,44 @@ BEGIN
             COALESCE(rainfall_mm, country_mean),
             CASE WHEN rainfall_mm IS NULL THEN 1 ELSE 0 END
         FROM filled;
-        PRINT '>> silver.wb_rainfall: ' + CAST(@@ROWCOUNT AS NVARCHAR(20)) + ' rows ('
+        SET @rows = @@ROWCOUNT;
+
+        -- rejected cells; their country-year is then filled with the country mean above
+        INSERT INTO silver.reject_log (source_table, business_key, column_name, raw_value, reason)
+        SELECT
+            @source,
+            CONCAT(area, ' | ', raw_year),
+            CASE WHEN year IS NULL THEN 'year' ELSE 'average_rain_fall_mm_per_year' END,
+            CASE WHEN year IS NULL THEN raw_year ELSE raw_value END,
+            CASE WHEN year IS NULL        THEN 'missing or invalid year'
+                 WHEN rainfall_mm IS NULL THEN 'missing or non-numeric rainfall (blank or ..)'
+                 ELSE 'negative rainfall'
+            END
+        FROM (
+            SELECT
+                TRIM(area)                                                           AS area,
+                TRIM(year)                                                           AS raw_year,
+                TRIM(REPLACE(average_rain_fall_mm_per_year, CHAR(13), ''))           AS raw_value,
+                TRY_CAST(NULLIF(TRIM(year), '') AS INT)                              AS year,
+                TRY_CAST(NULLIF(TRIM(REPLACE(average_rain_fall_mm_per_year, CHAR(13), '')), '') AS FLOAT) AS rainfall_mm
+            FROM bronze.wb_rainfall
+        ) r
+        WHERE year IS NULL OR rainfall_mm IS NULL OR rainfall_mm < 0;
+        SET @rejected = @@ROWCOUNT;
+
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, rows_loaded, rows_rejected, status, message)
+        VALUES (@batch_id, 'silver.load_silver', @source, @target,
+                @start_time, SYSDATETIME(), @rows, @rejected, 'SUCCESS',
+                'rows_loaded = complete country x year grid, including imputed years');
+        PRINT '>> silver.wb_rainfall: ' + CAST(@rows AS NVARCHAR(20)) + ' rows, '
+            + CAST(@rejected AS NVARCHAR(20)) + ' rejected ('
             + CAST(DATEDIFF(MILLISECOND, @start_time, SYSDATETIME()) AS NVARCHAR(20)) + ' ms)';
 
         ---------------------------------------------------------------
         -- silver.wb_temperature
         ---------------------------------------------------------------
-        SET @start_time = SYSDATETIME();
+        SELECT @start_time = SYSDATETIME(), @target = 'silver.wb_temperature', @source = 'bronze.wb_temperature';
         TRUNCATE TABLE silver.wb_temperature;
         WITH typed AS (
             SELECT
@@ -206,13 +322,42 @@ BEGIN
         FROM typed
         WHERE year IS NOT NULL AND avg_temp IS NOT NULL
         GROUP BY country_name, year;
-        PRINT '>> silver.wb_temperature: ' + CAST(@@ROWCOUNT AS NVARCHAR(20)) + ' rows ('
+        SET @rows = @@ROWCOUNT;
+
+        INSERT INTO silver.reject_log (source_table, business_key, column_name, raw_value, reason)
+        SELECT
+            @source,
+            CONCAT(country, ' | ', raw_year),
+            CASE WHEN year IS NULL THEN 'year' ELSE 'avg_temp' END,
+            CASE WHEN year IS NULL THEN raw_year ELSE raw_value END,
+            CASE WHEN year IS NULL THEN 'missing or invalid year'
+                 ELSE 'missing or non-numeric temperature'
+            END
+        FROM (
+            SELECT
+                TRIM(REPLACE(country, CHAR(13), ''))                             AS country,
+                TRIM(year)                                                       AS raw_year,
+                TRIM(REPLACE(avg_temp, CHAR(13), ''))                            AS raw_value,
+                TRY_CAST(NULLIF(TRIM(year), '') AS INT)                          AS year,
+                TRY_CAST(NULLIF(TRIM(REPLACE(avg_temp, CHAR(13), '')), '') AS FLOAT) AS avg_temp
+            FROM bronze.wb_temperature
+        ) t
+        WHERE year IS NULL OR avg_temp IS NULL;
+        SET @rejected = @@ROWCOUNT;
+
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, rows_loaded, rows_rejected, status, message)
+        VALUES (@batch_id, 'silver.load_silver', @source, @target,
+                @start_time, SYSDATETIME(), @rows, @rejected, 'SUCCESS',
+                'rows_loaded = country-years (city records averaged)');
+        PRINT '>> silver.wb_temperature: ' + CAST(@rows AS NVARCHAR(20)) + ' rows, '
+            + CAST(@rejected AS NVARCHAR(20)) + ' rejected ('
             + CAST(DATEDIFF(MILLISECOND, @start_time, SYSDATETIME()) AS NVARCHAR(20)) + ' ms)';
 
         ---------------------------------------------------------------
         -- silver.fao_pesticides
         ---------------------------------------------------------------
-        SET @start_time = SYSDATETIME();
+        SELECT @start_time = SYSDATETIME(), @target = 'silver.fao_pesticides', @source = 'bronze.fao_pesticides';
         TRUNCATE TABLE silver.fao_pesticides;
         WITH typed AS (
             SELECT
@@ -232,7 +377,47 @@ BEGIN
           AND year IS NOT NULL
           AND pesticides_tonnes >= 0
         GROUP BY country_name, year;
-        PRINT '>> silver.fao_pesticides: ' + CAST(@@ROWCOUNT AS NVARCHAR(20)) + ' rows ('
+        SET @rows = @@ROWCOUNT;
+
+        INSERT INTO silver.reject_log (source_table, business_key, column_name, raw_value, reason)
+        SELECT
+            @source,
+            CONCAT(area, ' | ', raw_year),
+            CASE WHEN ISNULL(element, '') <> 'Use' OR ISNULL(item, '') <> 'Pesticides (total)' THEN 'item'
+                 WHEN year IS NULL THEN 'year'
+                 ELSE 'value' END,
+            CASE WHEN ISNULL(element, '') <> 'Use' OR ISNULL(item, '') <> 'Pesticides (total)'
+                      THEN CONCAT(element, ' / ', item)
+                 WHEN year IS NULL THEN raw_year
+                 ELSE raw_value END,
+            CASE WHEN ISNULL(element, '') <> 'Use' OR ISNULL(item, '') <> 'Pesticides (total)'
+                      THEN 'not Use / Pesticides (total)'
+                 WHEN year IS NULL THEN 'missing or invalid year'
+                 ELSE 'missing or negative pesticide value' END
+        FROM (
+            SELECT
+                TRIM(area)                                                        AS area,
+                TRIM(element)                                                     AS element,
+                TRIM(item)                                                        AS item,
+                TRIM(year)                                                        AS raw_year,
+                TRIM(REPLACE(value, CHAR(13), ''))                                AS raw_value,
+                TRY_CAST(NULLIF(TRIM(year), '') AS INT)                           AS year,
+                TRY_CAST(NULLIF(TRIM(REPLACE(value, CHAR(13), '')), '') AS FLOAT) AS pesticides_tonnes
+            FROM bronze.fao_pesticides
+        ) p
+        WHERE ISNULL(element, '') <> 'Use'
+           OR ISNULL(item, '') <> 'Pesticides (total)'
+           OR year IS NULL
+           OR pesticides_tonnes IS NULL
+           OR pesticides_tonnes < 0;
+        SET @rejected = @@ROWCOUNT;
+
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, rows_loaded, rows_rejected, status)
+        VALUES (@batch_id, 'silver.load_silver', @source, @target,
+                @start_time, SYSDATETIME(), @rows, @rejected, 'SUCCESS');
+        PRINT '>> silver.fao_pesticides: ' + CAST(@rows AS NVARCHAR(20)) + ' rows, '
+            + CAST(@rejected AS NVARCHAR(20)) + ' rejected ('
             + CAST(DATEDIFF(MILLISECOND, @start_time, SYSDATETIME()) AS NVARCHAR(20)) + ' ms)';
 
         PRINT '================================================';
@@ -241,6 +426,10 @@ BEGIN
         PRINT '================================================';
     END TRY
     BEGIN CATCH
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, status, message)
+        VALUES (@batch_id, 'silver.load_silver', ISNULL(@source, '(none)'), ISNULL(@target, '(none)'),
+                ISNULL(@start_time, SYSDATETIME()), SYSDATETIME(), 'FAILED', ERROR_MESSAGE());
         PRINT '================================================';
         PRINT 'ERROR while loading Silver layer';
         PRINT 'Message: ' + ERROR_MESSAGE();

@@ -26,6 +26,7 @@ Feature engineering
     climate band    country temperature normal x rainfall normal
 
 A fact row is kept only when the yield label and all four sources exist.
+Each Gold table writes one row to audit.load_log.
 
 Usage
     EXEC gold.load_gold;                                  -- defaults
@@ -45,7 +46,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @start_time DATETIME2, @batch_start DATETIME2;
+    DECLARE @batch_id UNIQUEIDENTIFIER = NEWID();
+    DECLARE @start_time DATETIME2, @batch_start DATETIME2, @rows BIGINT, @target NVARCHAR(200);
     DECLARE @min_year INT, @max_year INT;
 
     BEGIN TRY
@@ -212,6 +214,7 @@ BEGIN
         ---------------------------------------------------------------
         -- 5. Dimensions
         ---------------------------------------------------------------
+        SET @start_time = SYSDATETIME();
         TRUNCATE TABLE gold.fact_crop_year;
         TRUNCATE TABLE gold.dim_country;
         TRUNCATE TABLE gold.dim_crop;
@@ -230,7 +233,12 @@ BEGIN
         LEFT JOIN #temp_normal tn ON tn.country_name = c.country_name
         LEFT JOIN #rain_normal rn ON rn.country_name = c.country_name
         WHERE c.country_name IN (SELECT country_name FROM #stage);
-        PRINT '>> gold.dim_country: ' + CAST(@@ROWCOUNT AS NVARCHAR(20)) + ' rows';
+        SET @rows = @@ROWCOUNT;
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, rows_loaded, status)
+        VALUES (@batch_id, 'gold.load_gold', 'silver.country, #stage', 'gold.dim_country',
+                @start_time, SYSDATETIME(), @rows, 'SUCCESS');
+        PRINT '>> gold.dim_country: ' + CAST(@rows AS NVARCHAR(20)) + ' rows';
 
         INSERT INTO gold.dim_crop (crop_key, crop_name, fao_item_code, crop_group)
         SELECT
@@ -243,7 +251,12 @@ BEGIN
             FROM silver.fao_yield y
             WHERE y.crop_name IN (SELECT crop_name FROM #stage)
         ) crops;
-        PRINT '>> gold.dim_crop: ' + CAST(@@ROWCOUNT AS NVARCHAR(20)) + ' rows';
+        SET @rows = @@ROWCOUNT;
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, rows_loaded, status)
+        VALUES (@batch_id, 'gold.load_gold', 'silver.fao_yield, #stage', 'gold.dim_crop',
+                @start_time, SYSDATETIME(), @rows, 'SUCCESS');
+        PRINT '>> gold.dim_crop: ' + CAST(@rows AS NVARCHAR(20)) + ' rows';
 
         INSERT INTO gold.dim_year (year_key, year, decade, five_year_period)
         SELECT
@@ -256,7 +269,12 @@ BEGIN
                 @start_year - 1 + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS year
             FROM sys.all_objects
         ) yrs;
-        PRINT '>> gold.dim_year: ' + CAST(@@ROWCOUNT AS NVARCHAR(20)) + ' rows';
+        SET @rows = @@ROWCOUNT;
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, rows_loaded, status)
+        VALUES (@batch_id, 'gold.load_gold', 'generated calendar years', 'gold.dim_year',
+                @start_time, SYSDATETIME(), @rows, 'SUCCESS');
+        PRINT '>> gold.dim_year: ' + CAST(@rows AS NVARCHAR(20)) + ' rows';
 
         INSERT INTO gold.dim_climate_band (
             climate_band_key, climate_band, temp_band, rain_band,
@@ -281,7 +299,12 @@ BEGIN
             (4, 'Humid',       1000.0,   2000.0),
             (5, 'Very humid',  2000.0, 100000.0)
         ) r (ord, label, lo, hi);
-        PRINT '>> gold.dim_climate_band: ' + CAST(@@ROWCOUNT AS NVARCHAR(20)) + ' rows';
+        SET @rows = @@ROWCOUNT;
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, rows_loaded, status)
+        VALUES (@batch_id, 'gold.load_gold', 'band definitions (static)', 'gold.dim_climate_band',
+                @start_time, SYSDATETIME(), @rows, 'SUCCESS');
+        PRINT '>> gold.dim_climate_band: ' + CAST(@rows AS NVARCHAR(20)) + ' rows';
 
         ---------------------------------------------------------------
         -- 6. Fact
@@ -314,7 +337,13 @@ BEGIN
         LEFT JOIN gold.dim_climate_band b
             ON  s.temp_normal_c      >= b.temp_min_c  AND s.temp_normal_c      < b.temp_max_c
             AND s.rainfall_normal_mm >= b.rain_min_mm AND s.rainfall_normal_mm < b.rain_max_mm;
-        PRINT '>> gold.fact_crop_year: ' + CAST(@@ROWCOUNT AS NVARCHAR(20)) + ' rows ('
+        SET @rows = @@ROWCOUNT;
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, rows_loaded, status, message)
+        VALUES (@batch_id, 'gold.load_gold', 'silver.* (yield, rainfall, temperature, pesticides)',
+                'gold.fact_crop_year', @start_time, SYSDATETIME(), @rows, 'SUCCESS',
+                CONCAT('shock threshold ', @shock_threshold_pct, ' %, years ', @start_year, '-', @end_year));
+        PRINT '>> gold.fact_crop_year: ' + CAST(@rows AS NVARCHAR(20)) + ' rows ('
             + CAST(DATEDIFF(MILLISECOND, @start_time, SYSDATETIME()) AS NVARCHAR(20)) + ' ms)';
 
         PRINT '================================================';
@@ -323,6 +352,10 @@ BEGIN
         PRINT '================================================';
     END TRY
     BEGIN CATCH
+        INSERT INTO audit.load_log (batch_id, procedure_name, source_name, target_table,
+                                    start_time, end_time, status, message)
+        VALUES (@batch_id, 'gold.load_gold', 'silver.*', 'gold.*',
+                ISNULL(@start_time, SYSDATETIME()), SYSDATETIME(), 'FAILED', ERROR_MESSAGE());
         PRINT '================================================';
         PRINT 'ERROR while loading Gold layer';
         PRINT 'Message: ' + ERROR_MESSAGE();

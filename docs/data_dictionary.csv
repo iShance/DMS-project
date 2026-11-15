@@ -1,0 +1,256 @@
+layer,table,column,data_type,definition,source,pii_flag,nullable,quality_rule
+bronze,bronze.fao_pesticides,domain,NVARCHAR(50),"FAO domain name, as received",datasets/source/pesticides.csv,no,yes,none (raw text)
+bronze,bronze.fao_pesticides,area,NVARCHAR(100),Country name as written by FAO,datasets/source/pesticides.csv,no,yes,none (raw text)
+bronze,bronze.fao_pesticides,element,NVARCHAR(50),Measure (expected 'Use'),datasets/source/pesticides.csv,no,yes,none (raw text)
+bronze,bronze.fao_pesticides,item,NVARCHAR(100),Item (expected 'Pesticides (total)'),datasets/source/pesticides.csv,no,yes,none (raw text)
+bronze,bronze.fao_pesticides,year,NVARCHAR(10),"Calendar year, as received",datasets/source/pesticides.csv,no,yes,none (raw text)
+bronze,bronze.fao_pesticides,unit,NVARCHAR(50),Unit (tonnes of active ingredients),datasets/source/pesticides.csv,no,yes,none (raw text)
+bronze,bronze.fao_pesticides,value,NVARCHAR(30),"Pesticide use, as received",datasets/source/pesticides.csv,no,yes,none (raw text)
+bronze,bronze.fao_pesticides,source_file,NVARCHAR(500),Provenance: full path of the file the row was loaded from,datasets/source/pesticides.csv,no,yes,none (raw text)
+bronze,bronze.fao_pesticides,ingested_at,DATETIME2,Provenance: when bronze.load_bronze wrote the row,datasets/source/pesticides.csv,no,no,none (raw text)
+bronze,bronze.fao_yield,domain_code,NVARCHAR(10),"FAO domain code (QC = crops), as received",datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,domain,NVARCHAR(50),"FAO domain name, as received",datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,area_code,NVARCHAR(10),"FAO area (country) code, as received; 351 = China aggregate",datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,area,NVARCHAR(100),Country name as written by FAO,datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,element_code,NVARCHAR(10),"FAO element code (5419 = yield), as received",datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,element,NVARCHAR(50),Measure name (expected 'Yield'),datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,item_code,NVARCHAR(10),"FAO item (crop) code, as received",datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,item,NVARCHAR(100),Crop name as written by FAO,datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,year_code,NVARCHAR(10),"Year code (same as year), as received",datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,year,NVARCHAR(10),"Calendar year, as received",datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,unit,NVARCHAR(20),Unit of value (expected 'hg/ha'),datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,value,NVARCHAR(30),"Yield value, as received (0 marks a missing FAO record)",datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,source_file,NVARCHAR(500),Provenance: full path of the file the row was loaded from,datasets/source/yield.csv,no,yes,none (raw text)
+bronze,bronze.fao_yield,ingested_at,DATETIME2,Provenance: when bronze.load_bronze wrote the row,datasets/source/yield.csv,no,no,none (raw text)
+bronze,bronze.ref_country,country_name,NVARCHAR(100),Conformed country name (seed table written for the project),datasets/reference/country_reference.csv,no,yes,none (raw text)
+bronze,bronze.ref_country,iso3,NVARCHAR(10),ISO 3166-1 alpha-3 code,datasets/reference/country_reference.csv,no,yes,none (raw text)
+bronze,bronze.ref_country,region,NVARCHAR(50),World Bank region,datasets/reference/country_reference.csv,no,yes,none (raw text)
+bronze,bronze.ref_country,source_file,NVARCHAR(500),Provenance: full path of the file the row was loaded from,datasets/reference/country_reference.csv,no,yes,none (raw text)
+bronze,bronze.ref_country,ingested_at,DATETIME2,Provenance: when bronze.load_bronze wrote the row,datasets/reference/country_reference.csv,no,no,none (raw text)
+bronze,bronze.ref_country_alias,source_name,NVARCHAR(100),Country spelling used by one of the sources,datasets/reference/country_aliases.csv,no,yes,none (raw text)
+bronze,bronze.ref_country_alias,country_name,NVARCHAR(100),Conformed name that spelling maps to,datasets/reference/country_aliases.csv,no,yes,none (raw text)
+bronze,bronze.ref_country_alias,source_file,NVARCHAR(500),Provenance: full path of the file the row was loaded from,datasets/reference/country_aliases.csv,no,yes,none (raw text)
+bronze,bronze.ref_country_alias,ingested_at,DATETIME2,Provenance: when bronze.load_bronze wrote the row,datasets/reference/country_aliases.csv,no,no,none (raw text)
+bronze,bronze.wb_rainfall,area,NVARCHAR(100),Country name as written in the rainfall file,datasets/source/rainfall.csv,no,yes,none (raw text)
+bronze,bronze.wb_rainfall,year,NVARCHAR(10),"Calendar year, as received",datasets/source/rainfall.csv,no,yes,none (raw text)
+bronze,bronze.wb_rainfall,average_rain_fall_mm_per_year,NVARCHAR(30),"Average annual rainfall (mm), as received; blank or '..' when missing",datasets/source/rainfall.csv,no,yes,none (raw text)
+bronze,bronze.wb_rainfall,source_file,NVARCHAR(500),Provenance: full path of the file the row was loaded from,datasets/source/rainfall.csv,no,yes,none (raw text)
+bronze,bronze.wb_rainfall,ingested_at,DATETIME2,Provenance: when bronze.load_bronze wrote the row,datasets/source/rainfall.csv,no,no,none (raw text)
+bronze,bronze.wb_temperature,year,NVARCHAR(10),"Calendar year, as received",datasets/source/temp.csv,no,yes,none (raw text)
+bronze,bronze.wb_temperature,country,NVARCHAR(100),Country name; several city/station records per country-year,datasets/source/temp.csv,no,yes,none (raw text)
+bronze,bronze.wb_temperature,avg_temp,NVARCHAR(30),"Annual average temperature (°C), as received; blank when missing",datasets/source/temp.csv,no,yes,none (raw text)
+bronze,bronze.wb_temperature,source_file,NVARCHAR(500),Provenance: full path of the file the row was loaded from,datasets/source/temp.csv,no,yes,none (raw text)
+bronze,bronze.wb_temperature,ingested_at,DATETIME2,Provenance: when bronze.load_bronze wrote the row,datasets/source/temp.csv,no,no,none (raw text)
+silver,silver.country,country_name,NVARCHAR(100),Conformed country name (source spelling mapped through silver.country_alias),bronze.ref_country,no,no,"unique, not empty (else rejected)"
+silver,silver.country,iso3,NVARCHAR(10),ISO 3166-1 alpha-3 country code,bronze.ref_country,no,yes,
+silver,silver.country,region,NVARCHAR(50),World Bank region,bronze.ref_country,no,yes,
+silver,silver.country,dwh_create_date,DATETIME2,When the pipeline wrote the row,bronze.ref_country,no,no,
+silver,silver.country_alias,source_name,NVARCHAR(100),Country spelling used by a source,bronze.ref_country_alias,no,no,"unique, not empty (else rejected)"
+silver,silver.country_alias,country_name,NVARCHAR(100),Conformed country name it maps to,bronze.ref_country_alias,no,no,exists in silver.country (check aliases_point_to_reference)
+silver,silver.country_alias,dwh_create_date,DATETIME2,When the pipeline wrote the row,bronze.ref_country_alias,no,no,
+silver,silver.fao_pesticides,country_name,NVARCHAR(100),Conformed country name (source spelling mapped through silver.country_alias),bronze.fao_pesticides,no,no,
+silver,silver.fao_pesticides,year,INT,"Calendar year, as received",bronze.fao_pesticides,no,no,
+silver,silver.fao_pesticides,pesticides_tonnes,FLOAT,"Pesticide use, tonnes of active ingredients (country total)",bronze.fao_pesticides,no,no,>= 0 (else rejected)
+silver,silver.fao_pesticides,dwh_create_date,DATETIME2,When the pipeline wrote the row,bronze.fao_pesticides,no,no,
+silver,silver.fao_yield,country_name,NVARCHAR(100),Conformed country name (source spelling mapped through silver.country_alias),bronze.fao_yield,no,no,"exists in silver.country (check yield_countries_in_reference); key with crop_name, year unique"
+silver,silver.fao_yield,source_area,NVARCHAR(100),Country name as written by FAO (before conforming),bronze.fao_yield,no,no,
+silver,silver.fao_yield,fao_area_code,INT,FAO area (country) code,bronze.fao_yield,no,no,<> 351 (China aggregate rejected)
+silver,silver.fao_yield,crop_name,NVARCHAR(100),Crop name (FAO item),bronze.fao_yield,no,no,
+silver,silver.fao_yield,fao_item_code,INT,FAO item (crop) code,bronze.fao_yield,no,no,
+silver,silver.fao_yield,crop_group,NVARCHAR(30),"Cereals, Roots & Tubers, Oilseeds or Starchy Fruits",bronze.fao_yield,no,no,
+silver,silver.fao_yield,year,INT,"Calendar year, as received",bronze.fao_yield,no,no,not NULL (else rejected)
+silver,silver.fao_yield,yield_hg_ha,"DECIMAL(18,2)","Crop yield, hectograms per hectare (10 hg/ha = 1 kg/ha)",bronze.fao_yield,no,no,> 0 (else rejected; check yield_positive)
+silver,silver.fao_yield,dwh_create_date,DATETIME2,When the pipeline wrote the row,bronze.fao_yield,no,no,
+silver,silver.reject_log,reject_id,BIGINT,Surrogate key of the rejected row,all bronze tables (silver.load_silver),no,no,
+silver,silver.reject_log,source_table,NVARCHAR(100),Bronze table the rejected row came from,all bronze tables (silver.load_silver),no,no,
+silver,silver.reject_log,business_key,NVARCHAR(400),Natural key of the rejected row as written in the source,all bronze tables (silver.load_silver),no,yes,
+silver,silver.reject_log,column_name,NVARCHAR(100),Column that failed the rule,all bronze tables (silver.load_silver),no,yes,
+silver,silver.reject_log,raw_value,NVARCHAR(100),That column's value as received (NULL = empty),all bronze tables (silver.load_silver),no,yes,
+silver,silver.reject_log,reason,NVARCHAR(200),Rule the row failed,all bronze tables (silver.load_silver),no,no,bronze rows = kept rows + rejected rows (check bronze_rows_equal_kept_rows_plus_rejects)
+silver,silver.reject_log,dwh_create_date,DATETIME2,When the pipeline wrote the row,all bronze tables (silver.load_silver),no,no,
+silver,silver.wb_rainfall,country_name,NVARCHAR(100),Conformed country name (source spelling mapped through silver.country_alias),bronze.wb_rainfall,no,no,
+silver,silver.wb_rainfall,year,INT,"Calendar year, as received",bronze.wb_rainfall,no,no,complete 1985-2017 grid per country (check rainfall_grid_complete)
+silver,silver.wb_rainfall,rainfall_mm,FLOAT,Annual rainfall (mm); the country mean when is_imputed = 1,bronze.wb_rainfall,no,no,>= 0 (else rejected)
+silver,silver.wb_rainfall,is_imputed,BIT,"1 = year missing from the source, filled with the country mean",bronze.wb_rainfall,no,no,
+silver,silver.wb_rainfall,dwh_create_date,DATETIME2,When the pipeline wrote the row,bronze.wb_rainfall,no,no,
+silver,silver.wb_temperature,country_name,NVARCHAR(100),Conformed country name (source spelling mapped through silver.country_alias),bronze.wb_temperature,no,no,
+silver,silver.wb_temperature,year,INT,"Calendar year, as received",bronze.wb_temperature,no,no,
+silver,silver.wb_temperature,avg_temp_c,FLOAT,Mean annual temperature (°C) of the country's city records,bronze.wb_temperature,no,no,not NULL (else rejected); between -30 and 45 (check temperature_in_physical_range)
+silver,silver.wb_temperature,n_records,INT,Number of city/station records averaged,bronze.wb_temperature,no,no,
+silver,silver.wb_temperature,dwh_create_date,DATETIME2,When the pipeline wrote the row,bronze.wb_temperature,no,no,
+gold,gold.dim_climate_band,climate_band_key,INT,Surrogate key of the climate band (gold.dim_climate_band),band definitions in gold.load_gold,no,no,
+gold,gold.dim_climate_band,climate_band,NVARCHAR(40),Temperature band / rainfall band of the country's climate normals,band definitions in gold.load_gold,no,no,
+gold,gold.dim_climate_band,temp_band,NVARCHAR(20),Cold < 10 °C <= Temperate < 20 °C <= Warm < 25 °C <= Hot,band definitions in gold.load_gold,no,no,
+gold,gold.dim_climate_band,rain_band,NVARCHAR(20),Arid < 250 mm <= Semi-arid < 500 <= Sub-humid < 1000 <= Humid < 2000 <= Very humid,band definitions in gold.load_gold,no,no,
+gold,gold.dim_climate_band,temp_min_c,FLOAT,Lower temperature bound (inclusive),band definitions in gold.load_gold,no,no,
+gold,gold.dim_climate_band,temp_max_c,FLOAT,Upper temperature bound (exclusive),band definitions in gold.load_gold,no,no,
+gold,gold.dim_climate_band,rain_min_mm,FLOAT,Lower rainfall bound (inclusive),band definitions in gold.load_gold,no,no,
+gold,gold.dim_climate_band,rain_max_mm,FLOAT,Upper rainfall bound (exclusive),band definitions in gold.load_gold,no,no,
+gold,gold.dim_country,country_key,INT,Surrogate key of the country (gold.dim_country),silver.country + climate normals,no,no,
+gold,gold.dim_country,country_name,NVARCHAR(100),Conformed country name (source spelling mapped through silver.country_alias),silver.country + climate normals,no,no,
+gold,gold.dim_country,iso3,NVARCHAR(10),ISO 3166-1 alpha-3 country code,silver.country + climate normals,no,yes,
+gold,gold.dim_country,region,NVARCHAR(50),World Bank region,silver.country + climate normals,no,yes,
+gold,gold.dim_country,temp_normal_c,FLOAT,Mean annual temperature 1961-1990 (WMO climate normal),silver.country + climate normals,no,yes,
+gold,gold.dim_country,rainfall_normal_mm,FLOAT,Long-term mean annual rainfall (observed years only),silver.country + climate normals,no,yes,
+gold,gold.dim_crop,crop_key,INT,Surrogate key of the crop (gold.dim_crop),silver.fao_yield,no,no,
+gold,gold.dim_crop,crop_name,NVARCHAR(100),Crop name (FAO item),silver.fao_yield,no,no,
+gold,gold.dim_crop,fao_item_code,INT,FAO item (crop) code,silver.fao_yield,no,no,
+gold,gold.dim_crop,crop_group,NVARCHAR(30),"Cereals, Roots & Tubers, Oilseeds or Starchy Fruits",silver.fao_yield,no,no,
+gold,gold.dim_year,year_key,INT,"Year key (= calendar year, gold.dim_year)",generated (1990-2013),no,no,
+gold,gold.dim_year,year,INT,Calendar year,generated (1990-2013),no,no,
+gold,gold.dim_year,decade,NVARCHAR(10),"Decade label, e.g. 1990s",generated (1990-2013),no,no,
+gold,gold.dim_year,five_year_period,NVARCHAR(10),"Five-year period, e.g. 1990-1994",generated (1990-2013),no,no,
+gold,gold.fact_crop_year,country_key,INT,Surrogate key of the country (gold.dim_country),silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,exists in dim_country (check fact_no_orphan_keys); key unique (check fact_grain_unique)
+gold,gold.fact_crop_year,crop_key,INT,Surrogate key of the crop (gold.dim_crop),silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,exists in dim_crop (check fact_no_orphan_keys)
+gold,gold.fact_crop_year,year_key,INT,"Year key (= calendar year, gold.dim_year)",silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,exists in dim_year (check fact_no_orphan_keys)
+gold,gold.fact_crop_year,climate_band_key,INT,Surrogate key of the climate band (gold.dim_climate_band),silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,yes,not NULL (check fact_has_climate_band)
+gold,gold.fact_crop_year,yield_hg_ha,FLOAT,"Crop yield, hectograms per hectare",silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,
+gold,gold.fact_crop_year,prev_yield_hg_ha,FLOAT,Yield of the previous calendar year (NULL if missing),silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,yes,
+gold,gold.fact_crop_year,yoy_change_pct,FLOAT,"Yield / previous yield - 1, in %",silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,yes,
+gold,gold.fact_crop_year,baseline_yield_hg_ha,FLOAT,Mean yield of the 5 previous calendar years (at least 3 present),silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,
+gold,gold.fact_crop_year,baseline_n_years,INT,Number of years present in the baseline window (3-5),silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,between 3 and 5
+gold,gold.fact_crop_year,yield_dev_pct,FLOAT,"Yield / baseline - 1, in %",silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,
+gold,gold.fact_crop_year,is_shock,TINYINT,"LABEL: 1 if yield_dev_pct <= -15, else 0",silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,1 iff yield_dev_pct <= -15 (check label_matches_threshold)
+gold,gold.fact_crop_year,prev_yield_dev_pct,FLOAT,Last year's yield_dev_pct (known before the harvest),silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,yes,
+gold,gold.fact_crop_year,prev_is_shock,TINYINT,Last year's label (known before the harvest; NULL if no label last year),silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,yes,
+gold,gold.fact_crop_year,rainfall_mm,FLOAT,Annual rainfall of the country-year (mm),silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,
+gold,gold.fact_crop_year,rain_dev_pct,FLOAT,"Rainfall / country long-term mean - 1, in %",silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,yes,
+gold,gold.fact_crop_year,rain_is_imputed,TINYINT,1 = rainfall imputed with the country mean,silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,
+gold,gold.fact_crop_year,avg_temp_c,FLOAT,Mean annual temperature (°C),silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,
+gold,gold.fact_crop_year,temp_anomaly_c,FLOAT,avg_temp_c - temp_normal_c (°C),silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,
+gold,gold.fact_crop_year,pesticides_tonnes,FLOAT,"Pesticide use, tonnes of active ingredients (country total)",silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,
+gold,gold.fact_crop_year,pesticide_intensity,FLOAT,LOG10(1 + pesticides_tonnes),silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,no,
+gold,gold.fact_crop_year,pesticide_yoy_pct,FLOAT,"Pesticide use / previous year - 1, in % (NULL if gap)",silver.fao_yield + wb_rainfall + wb_temperature + fao_pesticides,no,yes,
+gold,gold.features_shock,country_key,INT,Surrogate key of the country (gold.dim_country),gold.fact_crop_year + dims,no,no,
+gold,gold.features_shock,crop_key,INT,Surrogate key of the crop (gold.dim_crop),gold.fact_crop_year + dims,no,no,
+gold,gold.features_shock,year_key,INT,"Year key (= calendar year, gold.dim_year)",gold.fact_crop_year + dims,no,no,
+gold,gold.features_shock,country_name,NVARCHAR(100),Conformed country name (source spelling mapped through silver.country_alias),gold.fact_crop_year + dims,no,no,
+gold,gold.features_shock,crop_name,NVARCHAR(100),Crop name (FAO item),gold.fact_crop_year + dims,no,no,
+gold,gold.features_shock,region,NVARCHAR(50),World Bank region,gold.fact_crop_year + dims,no,yes,
+gold,gold.features_shock,year,INT,Calendar year,gold.fact_crop_year + dims,no,no,
+gold,gold.features_shock,rain_dev_pct,FLOAT,"Rainfall / country long-term mean - 1, in %",gold.fact_crop_year + dims,no,yes,
+gold,gold.features_shock,temp_anomaly_c,FLOAT,avg_temp_c - temp_normal_c (°C),gold.fact_crop_year + dims,no,no,
+gold,gold.features_shock,pesticide_intensity,FLOAT,LOG10(1 + pesticides_tonnes),gold.fact_crop_year + dims,no,no,
+gold,gold.features_shock,rainfall_mm,FLOAT,Annual rainfall of the country-year (mm),gold.fact_crop_year + dims,no,no,
+gold,gold.features_shock,prev_yield_dev_pct,FLOAT,Last year's yield_dev_pct (known before the harvest),gold.fact_crop_year + dims,no,yes,
+gold,gold.features_shock,prev_is_shock,TINYINT,Last year's label (known before the harvest; NULL if no label last year),gold.fact_crop_year + dims,no,yes,
+gold,gold.features_shock,is_shock,TINYINT,"LABEL: 1 if yield_dev_pct <= -15, else 0",gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,country_name,NVARCHAR(100),Conformed country name (source spelling mapped through silver.country_alias),gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,iso3,NVARCHAR(10),ISO 3166-1 alpha-3 country code,gold.fact_crop_year + dims,no,yes,
+gold,gold.vw_ml_dataset,region,NVARCHAR(50),World Bank region,gold.fact_crop_year + dims,no,yes,
+gold,gold.vw_ml_dataset,crop_name,NVARCHAR(100),Crop name (FAO item),gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,crop_group,NVARCHAR(30),"Cereals, Roots & Tubers, Oilseeds or Starchy Fruits",gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,year,INT,Calendar year,gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,decade,NVARCHAR(10),"Decade label, e.g. 1990s",gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,climate_band,NVARCHAR(40),Temperature band / rainfall band of the country's climate normals,gold.fact_crop_year + dims,no,yes,
+gold,gold.vw_ml_dataset,temp_band,NVARCHAR(20),Cold < 10 °C <= Temperate < 20 °C <= Warm < 25 °C <= Hot,gold.fact_crop_year + dims,no,yes,
+gold,gold.vw_ml_dataset,rain_band,NVARCHAR(20),Arid < 250 mm <= Semi-arid < 500 <= Sub-humid < 1000 <= Humid < 2000 <= Very humid,gold.fact_crop_year + dims,no,yes,
+gold,gold.vw_ml_dataset,yield_hg_ha,FLOAT,"Crop yield, hectograms per hectare",gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,prev_yield_hg_ha,FLOAT,Yield of the previous calendar year (NULL if missing),gold.fact_crop_year + dims,no,yes,
+gold,gold.vw_ml_dataset,yoy_change_pct,FLOAT,"Yield / previous yield - 1, in %",gold.fact_crop_year + dims,no,yes,
+gold,gold.vw_ml_dataset,baseline_yield_hg_ha,FLOAT,Mean yield of the 5 previous calendar years (at least 3 present),gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,yield_dev_pct,FLOAT,"Yield / baseline - 1, in %",gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,is_shock,TINYINT,"LABEL: 1 if yield_dev_pct <= -15, else 0",gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,prev_yield_dev_pct,FLOAT,Last year's yield_dev_pct (known before the harvest),gold.fact_crop_year + dims,no,yes,
+gold,gold.vw_ml_dataset,prev_is_shock,TINYINT,Last year's label (known before the harvest; NULL if no label last year),gold.fact_crop_year + dims,no,yes,
+gold,gold.vw_ml_dataset,rainfall_mm,FLOAT,Annual rainfall of the country-year (mm),gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,rain_dev_pct,FLOAT,"Rainfall / country long-term mean - 1, in %",gold.fact_crop_year + dims,no,yes,
+gold,gold.vw_ml_dataset,rain_is_imputed,TINYINT,1 = rainfall imputed with the country mean,gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,avg_temp_c,FLOAT,Mean annual temperature (°C),gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,temp_anomaly_c,FLOAT,avg_temp_c - temp_normal_c (°C),gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,pesticides_tonnes,FLOAT,"Pesticide use, tonnes of active ingredients (country total)",gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,pesticide_intensity,FLOAT,LOG10(1 + pesticides_tonnes),gold.fact_crop_year + dims,no,no,
+gold,gold.vw_ml_dataset,pesticide_yoy_pct,FLOAT,"Pesticide use / previous year - 1, in % (NULL if gap)",gold.fact_crop_year + dims,no,yes,
+semantic,semantic.metric_catalog,metric_name,NVARCHAR(100),Metric identifier (name in semantic/metrics.yml),semantic/metrics.yml (python -m agripulse.semantic),no,no,
+semantic,semantic.metric_catalog,label,NVARCHAR(200),Display name,semantic/metrics.yml (python -m agripulse.semantic),no,no,
+semantic,semantic.metric_catalog,definition,NVARCHAR(1000),Business meaning of the metric,semantic/metrics.yml (python -m agripulse.semantic),no,no,
+semantic,semantic.metric_catalog,owner,NVARCHAR(100),Who answers questions about the metric,semantic/metrics.yml (python -m agripulse.semantic),no,no,
+semantic,semantic.metric_catalog,grain,NVARCHAR(200),What one row of the metric's source means,semantic/metrics.yml (python -m agripulse.semantic),no,no,
+semantic,semantic.metric_catalog,sql_expression,NVARCHAR(1000),Aggregate evaluated over gold.fact_crop_year f,semantic/metrics.yml (python -m agripulse.semantic),no,no,
+semantic,semantic.metric_catalog,dimensions,NVARCHAR(500),Dimensions the metric can be sliced by,semantic/metrics.yml (python -m agripulse.semantic),no,yes,
+semantic,semantic.metric_catalog,null_policy,NVARCHAR(500),How NULLs are treated,semantic/metrics.yml (python -m agripulse.semantic),no,no,
+semantic,semantic.metric_catalog,validation_query,NVARCHAR(MAX),Independent query that must return the same number,semantic/metrics.yml (python -m agripulse.semantic),no,no,
+semantic,semantic.metric_catalog,metric_value,FLOAT,Metric value at the last validation,semantic/metrics.yml (python -m agripulse.semantic),no,yes,
+semantic,semantic.metric_catalog,validation_value,FLOAT,Result of the validation query at the last validation,semantic/metrics.yml (python -m agripulse.semantic),no,yes,
+semantic,semantic.metric_catalog,validation_status,NVARCHAR(10),PASS / FAIL of the last validation,semantic/metrics.yml (python -m agripulse.semantic),no,yes,PASS for every metric (tests/test_sql.py)
+semantic,semantic.metric_catalog,validated_at,DATETIME2,When the metric was last validated,semantic/metrics.yml (python -m agripulse.semantic),no,yes,
+semantic,semantic.metric_catalog,dwh_create_date,DATETIME2,When the pipeline wrote the row,semantic/metrics.yml (python -m agripulse.semantic),no,no,
+semantic,semantic.v_shock_detection,run_id,UNIQUEIDENTIFIER,Identifier of one scoring run,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,no,
+semantic,semantic.v_shock_detection,generated_at,DATETIME2,When the run was scored,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,no,
+semantic,semantic.v_shock_detection,is_latest_run,INT,1 for the most recent scoring run,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,no,
+semantic,semantic.v_shock_detection,model_name,NVARCHAR(100),"Model name, e.g. Bagging",ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,no,
+semantic,semantic.v_shock_detection,model_version,NVARCHAR(20),Model code version,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,no,
+semantic,semantic.v_shock_detection,model_role,NVARCHAR(20),baseline or improved,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,no,
+semantic,semantic.v_shock_detection,threshold,FLOAT,"Decision threshold (chosen on CV predictions, never on test years)",ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,no,
+semantic,semantic.v_shock_detection,first_year,INT,First scored year,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,yes,
+semantic,semantic.v_shock_detection,last_year,INT,Last scored year,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,yes,
+semantic,semantic.v_shock_detection,scored_crop_years,INT,Crop-years scored,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,yes,
+semantic,semantic.v_shock_detection,actual_shocks,INT,Actual shocks among scored crop-years,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,yes,
+semantic,semantic.v_shock_detection,predicted_shocks,INT,Crop-years predicted as shocks,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,yes,
+semantic,semantic.v_shock_detection,true_alarms,INT,Predicted shocks that were shocks,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,yes,
+semantic,semantic.v_shock_detection,false_alarms,INT,Predicted shocks that were not shocks,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,yes,
+semantic,semantic.v_shock_detection,detection_rate_pct,NUMERIC,"true_alarms / actual_shocks (recall), in %",ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,yes,
+semantic,semantic.v_shock_detection,precision_pct,NUMERIC,"true_alarms / predicted_shocks, in %",ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,yes,
+semantic,semantic.v_shock_detection,false_alarm_rate_pct,NUMERIC,"false_alarms / normal crop-years, in %",ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,yes,
+semantic,semantic.v_shock_detection,test_roc_auc,FLOAT,ROC-AUC on the test years,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,no,
+semantic,semantic.v_shock_detection,test_pr_auc,FLOAT,PR-AUC (average precision) on the test years,ml.shock_prediction + ml.model_run + gold.fact_crop_year,no,no,
+semantic,semantic.v_shock_rate_by_climate,climate_band,NVARCHAR(40),Temperature band / rainfall band of the country's climate normals,gold star schema,no,no,
+semantic,semantic.v_shock_rate_by_climate,temp_band,NVARCHAR(20),Cold < 10 °C <= Temperate < 20 °C <= Warm < 25 °C <= Hot,gold star schema,no,no,
+semantic,semantic.v_shock_rate_by_climate,rain_band,NVARCHAR(20),Arid < 250 mm <= Semi-arid < 500 <= Sub-humid < 1000 <= Humid < 2000 <= Very humid,gold star schema,no,no,
+semantic,semantic.v_shock_rate_by_climate,pesticide_use,VARCHAR(6),low / medium / high: tercile of pesticide_intensity over all crop-years,gold star schema,no,no,
+semantic,semantic.v_shock_rate_by_climate,countries,INT,Number of countries,gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_climate,crop_years,INT,Number of crop-years (metric crop_year_count),gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_climate,shocks,INT,Number of shocks (metric shock_count),gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_climate,shock_rate_pct,FLOAT,Shock rate in % (metric shock_rate_pct),gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_climate,avg_temp_anomaly_c,FLOAT,Metric avg_temp_anomaly_c,gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_climate,avg_pesticide_intensity,FLOAT,Metric avg_pesticide_intensity,gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_crop_region,region,NVARCHAR(50),World Bank region,gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_crop_region,crop_group,NVARCHAR(30),"Cereals, Roots & Tubers, Oilseeds or Starchy Fruits",gold star schema,no,no,
+semantic,semantic.v_shock_rate_by_crop_region,crop_name,NVARCHAR(100),Crop name (FAO item),gold star schema,no,no,
+semantic,semantic.v_shock_rate_by_crop_region,crop_years,INT,Number of crop-years (metric crop_year_count),gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_crop_region,shocks,INT,Number of shocks (metric shock_count),gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_crop_region,shock_rate_pct,FLOAT,Shock rate in % (metric shock_rate_pct),gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_crop_region,avg_yield_dev_pct,FLOAT,Metric avg_yield_dev_pct,gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_year,year,INT,Calendar year,gold star schema,no,no,
+semantic,semantic.v_shock_rate_by_year,decade,NVARCHAR(10),"Decade label, e.g. 1990s",gold star schema,no,no,
+semantic,semantic.v_shock_rate_by_year,crop_years,INT,Number of crop-years (metric crop_year_count),gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_year,shocks,INT,Number of shocks (metric shock_count),gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_year,shock_rate_pct,FLOAT,Shock rate in % (metric shock_rate_pct),gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_year,avg_temp_anomaly_c,FLOAT,Metric avg_temp_anomaly_c,gold star schema,no,yes,
+semantic,semantic.v_shock_rate_by_year,hot_year_share_pct,FLOAT,"Share of crop-years with temp_anomaly_c > +1 °C, in %",gold star schema,no,yes,
+ml,ml.model_run,run_id,UNIQUEIDENTIFIER,Identifier of one scoring run,python -m agripulse.score,no,no,
+ml,ml.model_run,model_name,NVARCHAR(100),"Model name, e.g. Bagging",python -m agripulse.score,no,no,
+ml,ml.model_run,model_version,NVARCHAR(20),Model code version,python -m agripulse.score,no,no,
+ml,ml.model_run,model_role,NVARCHAR(20),baseline or improved,python -m agripulse.score,no,no,
+ml,ml.model_run,feature_view,NVARCHAR(200),SQL view the features were read from,python -m agripulse.score,no,no,
+ml,ml.model_run,features,NVARCHAR(1000),Feature columns used,python -m agripulse.score,no,no,
+ml,ml.model_run,train_years,NVARCHAR(20),Training years,python -m agripulse.score,no,no,
+ml,ml.model_run,test_years,NVARCHAR(20),Test years (scored),python -m agripulse.score,no,no,
+ml,ml.model_run,threshold,FLOAT,"Decision threshold (chosen on CV predictions, never on test years)",python -m agripulse.score,no,no,
+ml,ml.model_run,cv_roc_auc,FLOAT,Forward-chaining CV ROC-AUC (NULL for the rule baseline),python -m agripulse.score,no,yes,
+ml,ml.model_run,test_roc_auc,FLOAT,ROC-AUC on the test years,python -m agripulse.score,no,no,
+ml,ml.model_run,test_pr_auc,FLOAT,PR-AUC (average precision) on the test years,python -m agripulse.score,no,no,
+ml,ml.model_run,test_precision,FLOAT,Precision on the test years,python -m agripulse.score,no,no,
+ml,ml.model_run,test_recall,FLOAT,Recall on the test years,python -m agripulse.score,no,no,
+ml,ml.model_run,test_f1,FLOAT,F1 on the test years,python -m agripulse.score,no,no,
+ml,ml.model_run,generated_at,DATETIME2,When the run was scored,python -m agripulse.score,no,no,
+ml,ml.shock_prediction,run_id,UNIQUEIDENTIFIER,Identifier of one scoring run,python -m agripulse.score (reads gold.features_shock),no,no,
+ml,ml.shock_prediction,model_name,NVARCHAR(100),"Model name, e.g. Bagging",python -m agripulse.score (reads gold.features_shock),no,no,
+ml,ml.shock_prediction,model_version,NVARCHAR(20),Model code version,python -m agripulse.score (reads gold.features_shock),no,no,
+ml,ml.shock_prediction,country_key,INT,Surrogate key of the country (gold.dim_country),python -m agripulse.score (reads gold.features_shock),no,no,
+ml,ml.shock_prediction,crop_key,INT,Surrogate key of the crop (gold.dim_crop),python -m agripulse.score (reads gold.features_shock),no,no,
+ml,ml.shock_prediction,year_key,INT,"Year key (= calendar year, gold.dim_year)",python -m agripulse.score (reads gold.features_shock),no,no,
+ml,ml.shock_prediction,shock_probability,FLOAT,Predicted probability of a shock (score),python -m agripulse.score (reads gold.features_shock),no,no,between 0 and 1
+ml,ml.shock_prediction,predicted_shock,TINYINT,1 if shock_probability >= threshold,python -m agripulse.score (reads gold.features_shock),no,no,one prediction per test crop-year and model (tests/test_sql.py)
+ml,ml.shock_prediction,generated_at,DATETIME2,When the run was scored,python -m agripulse.score (reads gold.features_shock),no,no,
+audit,audit.load_log,load_id,BIGINT,Surrogate key of the log row,"bronze.load_bronze, silver.load_silver, gold.load_gold",no,no,
+audit,audit.load_log,batch_id,UNIQUEIDENTIFIER,One identifier per procedure call,"bronze.load_bronze, silver.load_silver, gold.load_gold",no,no,
+audit,audit.load_log,procedure_name,NVARCHAR(128),Load procedure that wrote the row,"bronze.load_bronze, silver.load_silver, gold.load_gold",no,no,
+audit,audit.load_log,source_name,NVARCHAR(200),Source file or upstream table(s),"bronze.load_bronze, silver.load_silver, gold.load_gold",no,no,
+audit,audit.load_log,target_table,NVARCHAR(200),Table loaded,"bronze.load_bronze, silver.load_silver, gold.load_gold",no,no,
+audit,audit.load_log,start_time,DATETIME2,Start of the table load,"bronze.load_bronze, silver.load_silver, gold.load_gold",no,no,
+audit,audit.load_log,end_time,DATETIME2,End of the table load,"bronze.load_bronze, silver.load_silver, gold.load_gold",no,yes,
+audit,audit.load_log,rows_loaded,BIGINT,Rows in the target table after the load,"bronze.load_bronze, silver.load_silver, gold.load_gold",no,yes,
+audit,audit.load_log,rows_rejected,BIGINT,Rows written to silver.reject_log (Silver only),"bronze.load_bronze, silver.load_silver, gold.load_gold",no,yes,
+audit,audit.load_log,status,NVARCHAR(20),SUCCESS or FAILED,"bronze.load_bronze, silver.load_silver, gold.load_gold",no,no,latest run of each procedure SUCCESS (check latest_run_of_each_procedure_succeeded)
+audit,audit.load_log,message,NVARCHAR(4000),Error message or note,"bronze.load_bronze, silver.load_silver, gold.load_gold",no,yes,

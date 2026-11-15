@@ -10,7 +10,9 @@ Gold layer: star schema at the grain  country x crop x year  (1990-2013).
                                |
                       gold.dim_climate_band
 
-gold.vw_ml_dataset flattens the star into one table for data mining.
+gold.vw_ml_dataset flattens the star into one table for EDA and data mining.
+gold.features_shock is the documented feature view the classifier reads
+(src/agripulse/score.py): keys, the model features and the label only.
 
 Surrogate keys are assigned by gold.load_gold (ROW_NUMBER over the natural
 key), so they are stable for a given Silver load. Foreign keys are not
@@ -128,4 +130,35 @@ JOIN gold.dim_country c       ON c.country_key = f.country_key
 JOIN gold.dim_crop cr         ON cr.crop_key = f.crop_key
 JOIN gold.dim_year y          ON y.year_key = f.year_key
 LEFT JOIN gold.dim_climate_band b ON b.climate_band_key = f.climate_band_key;
+GO
+
+-- ---------------------------------------------------------------------------
+-- Feature view for shock classification.
+-- GRAIN: one row per country x crop x year (= gold.fact_crop_year).
+-- Every column is known before the harvest it predicts, except the label.
+--   climate   rain_dev_pct, temp_anomaly_c, pesticide_intensity
+--   context   rainfall_mm (aridity level), crop_name, region
+--   history   prev_yield_dev_pct, prev_is_shock (last year's outcome)
+--   label     is_shock
+-- Feature sets A/B/C in src/agripulse/mining.py are subsets of these columns.
+-- ---------------------------------------------------------------------------
+CREATE OR ALTER VIEW gold.features_shock AS
+SELECT
+    f.country_key,
+    f.crop_key,
+    f.year_key,
+    c.country_name,
+    cr.crop_name,
+    c.region,
+    f.year_key           AS year,
+    f.rain_dev_pct,
+    f.temp_anomaly_c,
+    f.pesticide_intensity,
+    f.rainfall_mm,
+    f.prev_yield_dev_pct,
+    f.prev_is_shock,
+    f.is_shock
+FROM gold.fact_crop_year f
+JOIN gold.dim_country c ON c.country_key = f.country_key
+JOIN gold.dim_crop cr   ON cr.crop_key = f.crop_key;
 GO

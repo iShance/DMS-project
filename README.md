@@ -8,8 +8,15 @@ Food-security planners usually see a harvest collapse only after it happens. Agr
 detected in advance from rainfall deviation, temperature anomaly and pesticide intensity. It also asks
 which combinations of climate stress produce shocks and whether the patterns differ by crop and region.
 
-It integrates four public sources into a **Bronze → Silver → Gold** warehouse (SQL Server) and mines
-the Gold dataset with EDA, OLAP, five classifiers, a regression baseline and association rules.
+It integrates four public sources into a **Bronze → Silver → Gold** warehouse (SQL Server) with a
+semantic metric layer, mines the Gold dataset with EDA, OLAP, five classifiers, a regression baseline
+and association rules, and writes the model's predictions back to SQL (`ml.*`).
+
+```
+Sources -> Bronze -> Silver -> Gold -> Semantic layer -> Mining / ML -> ml.* tables -> reports / BI
+           (+ provenance) (+ reject log)  (star schema,     (metric catalog,   (SQL -> Python -> SQL)
+                                          feature view)    metric views)
+```
 
 ## Results at a glance
 
@@ -49,34 +56,46 @@ datasets/
   reference/     country reference + name aliases (seed tables)
   gold/          Gold layer exported by the pandas pipeline (fact, dimensions, ml_dataset.csv)
 sql/
-  00_init_database.sql       database + bronze/silver/gold schemas
-  01_bronze_ddl.sql          raw tables
-  02_bronze_load_proc.sql    bronze.load_bronze  (TRUNCATE + BULK INSERT)
-  03_silver_ddl.sql          typed tables
-  04_silver_load_proc.sql    silver.load_silver  (clean, conform, de-duplicate, impute)
-  05_gold_ddl.sql            star schema + gold.vw_ml_dataset
+  00_init_database.sql       database + bronze/silver/gold/semantic/ml/audit schemas, audit.load_log
+  01_bronze_ddl.sql          raw tables with provenance columns + load views
+  02_bronze_load_proc.sql    bronze.load_bronze  (TRUNCATE + BULK INSERT, audit rows)
+  03_silver_ddl.sql          typed tables + silver.reject_log
+  04_silver_load_proc.sql    silver.load_silver  (clean, conform, de-duplicate, impute, log rejects)
+  05_gold_ddl.sql            star schema, gold.vw_ml_dataset, gold.features_shock
   06_gold_load_proc.sql      gold.load_gold      (LAG / window features, shock label)
-  07_quality_checks.sql      integrity checks and data profiling
+  07_quality_checks.sql      13 zero-row checks ("-- check:") and data profiling
   08_olap_analysis.sql       ROLLUP, CUBE, PIVOT, slice, dice, drill-down
+  09_semantic.sql            semantic.metric_catalog + metric views
+  10_ml_outputs.sql          ml.model_run, ml.shock_prediction, semantic.v_shock_detection
   run_all.sql                builds everything (SQLCMD mode)
+semantic/
+  metrics.yml    the 7 business metrics: definition, owner, grain, SQL, validation query
 src/agripulse/
-  pipeline.py    the same Bronze/Silver/Gold rules in pandas
+  pipeline.py    the same Bronze/Silver/Gold rules in pandas (incl. the reject log)
   mining.py      models, forward-chaining CV, rule extraction, transactions
+  score.py       SQL -> Python -> SQL: read gold.features_shock, write predictions to ml.*
+  semantic.py    load metrics.yml into semantic.metric_catalog and validate every metric
   data.py        loads the Gold table from CSV or from SQL Server
+  db.py          SQL Server connection (AGRIPULSE_SQL_CONN or .env)
   config.py      shared constants (threshold, windows, years)
   plotting.py    figure style
 notebooks/
   01_warehouse_eda_olap.ipynb         layers, data quality, EDA, OLAP
   02_shock_classification.ipynb       DT / NB / k-NN / Bagging / AdaBoost, rules, regression
   03_shock_recipes_association.ipynb  Apriori / FP-growth shock recipes
+tests/           pytest: pipeline, mining, metrics.yml, and the SQL warehouse (when connected)
 reports/
   findings.md    results summary for the paper
   figures/       15 figures (PNG)
   tables/        result tables (CSV)
 docs/
-  architecture.md   layers, rules, star schema
-  data_catalog.md   Gold columns
-  data_quality.md   source issues and how they were handled
+  PROJECT_SPEC.md           problem, questions, layers, checklists, milestones
+  architecture.md           layers, rules, star schema
+  data_catalog.md           Gold, semantic and ml columns
+  data_dictionary.csv       every column of every layer (type, definition, source, rule)
+  data_source_register.csv  sources: owner, licence, grain, keys, volume, missing values
+  data_quality.md           source issues, how they were handled, rejected rows
+  naming_conventions.md     schema, table, key and column names
 ```
 
 ## How to run
@@ -88,6 +107,7 @@ python -m venv .venv
 .venv\Scripts\activate            # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 jupyter lab                       # open notebooks/ and run 01, 02, 03 in order
+pytest                            # SQL tests are skipped without a database
 ```
 
 Notebook 01 rebuilds `datasets/gold/` from the raw files. To rebuild it without Jupyter:
@@ -95,9 +115,10 @@ Notebook 01 rebuilds `datasets/gold/` from the raw files. To rebuild it without 
 ```bash
 set PYTHONPATH=src                # macOS/Linux: export PYTHONPATH=src
 python -m agripulse.pipeline
+python -m agripulse.score --dry-run   # train and evaluate the scoring model, write nothing
 ```
 
-### Option B: SQL Server warehouse (SQL Server 2017+)
+### Option B: SQL Server warehouse (SQL Server 2017+ on Windows)
 
 1. Copy the `datasets` folder somewhere the SQL Server service can read, e.g. `C:\AgriPulse\datasets\`.
    Folders under OneDrive or a user profile usually aren't readable by the service.
@@ -115,11 +136,38 @@ python -m agripulse.pipeline
    EXEC gold.load_gold;            -- optional: @shock_threshold_pct = -20.0
    ```
 
-3. Run `07_quality_checks.sql` (the "expect 0 rows" queries must return nothing) and
+   and then `09_semantic.sql` and `10_ml_outputs.sql`.
+3. Run `07_quality_checks.sql` (every `-- check:` query must return no rows) and
    `08_olap_analysis.sql`.
-4. To mine straight from the warehouse: `pip install pyodbc`, set `AGRIPULSE_SQL_CONN`, and call
-   `load_ml_dataset(source="sql")`. `agripulse.data.compare_with_sql()` checks that the SQL Gold layer
-   matches the pandas one row by row.
+4. Connect Python to the warehouse: install the Microsoft ODBC Driver 18 for SQL Server, copy
+   `.env.example` to `.env` and check `AGRIPULSE_SQL_CONN`. Then, from the project root:
+
+   ```bash
+   set PYTHONPATH=src                # macOS/Linux: export PYTHONPATH=src
+   python -m agripulse.semantic      # fill semantic.metric_catalog and validate the 7 metrics
+   python -m agripulse.score         # read gold.features_shock, write predictions to ml.*
+   pytest                            # now also runs tests/test_sql.py against the warehouse
+   ```
+
+   `load_ml_dataset(source="sql")` reads the Gold view from the warehouse, and
+   `agripulse.data.compare_with_sql()` checks that the SQL Gold layer matches the pandas one row by row.
+
+The Bronze load uses `BULK INSERT ... CODEPAGE = '65001'`, which SQL Server on Linux (and so Docker on
+a Mac) does not support; run the warehouse on SQL Server for Windows.
+
+## Deliverables (course skeleton)
+
+| deliverable | where |
+|---|---|
+| architecture diagram | `docs/architecture.md`, the diagram above |
+| source register, data dictionary | `docs/data_source_register.csv`, `docs/data_dictionary.csv` |
+| Bronze, Silver, Gold layers | `sql/01`-`06` (SQL Server) and `src/agripulse/pipeline.py` (pandas) |
+| data-quality report | `docs/data_quality.md`, `sql/07_quality_checks.sql`, `silver.reject_log`, `audit.load_log` |
+| semantic metrics with validation queries | `semantic/metrics.yml`, `sql/09_semantic.sql`, `python -m agripulse.semantic` |
+| mining task with a baseline | notebooks 02-03; `python -m agripulse.score` writes baseline + model to `ml.*` |
+| tests | `tests/` (`pytest`) |
+| final report, reproducible demo | `reports/findings.md`, the notebooks |
+| project specification | `docs/PROJECT_SPEC.md` |
 
 ## Method
 

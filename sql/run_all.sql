@@ -2,7 +2,12 @@
 =============================================================================
 AgriPulse - run_all.sql   (SQLCMD mode)
 =============================================================================
-Builds the whole warehouse from scratch and runs the quality checks.
+Builds the whole warehouse from scratch (Bronze, Silver, Gold, semantic and
+ml objects) and runs the quality checks. Then, from the project root:
+
+    python -m agripulse.semantic    fill + validate semantic.metric_catalog
+    python -m agripulse.score       write model outputs to ml.*
+    pytest                          run every test, including tests/test_sql.py
 
 From a terminal, inside the sql\ folder:
 
@@ -36,4 +41,6 @@ EXEC silver.load_silver;
 EXEC gold.load_gold;
 GO
 
+:r .\09_semantic.sql
+:r .\10_ml_outputs.sql
 :r .\07_quality_checks.sql

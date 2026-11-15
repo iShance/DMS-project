@@ -11,6 +11,7 @@ natural key. dwh_create_date records when the row was loaded.
     silver.wb_rainfall     country x year          (complete 1985-2017 grid)
     silver.wb_temperature  country x year          (mean of city records)
     silver.fao_pesticides  country x year          (tonnes of active ingredients)
+    silver.reject_log      one row per Bronze row that did not reach Silver, with the reason
 =============================================================================
 */
 
@@ -84,5 +85,22 @@ CREATE TABLE silver.fao_pesticides (
     pesticides_tonnes  FLOAT         NOT NULL,
     dwh_create_date    DATETIME2     NOT NULL DEFAULT SYSDATETIME(),
     CONSTRAINT pk_silver_fao_pesticides PRIMARY KEY (country_name, year)
+);
+GO
+
+-- Every Bronze row that silver.load_silver does not keep is written here with
+-- the rule it failed, so Bronze rows = accepted rows + rejected rows.
+-- (Rows that are averaged, e.g. several city temperatures for one
+-- country-year, are aggregated, not rejected.)
+IF OBJECT_ID('silver.reject_log', 'U') IS NOT NULL DROP TABLE silver.reject_log;
+GO
+CREATE TABLE silver.reject_log (
+    reject_id        BIGINT IDENTITY(1,1) PRIMARY KEY,
+    source_table     NVARCHAR(100) NOT NULL,   -- Bronze table the row came from
+    business_key     NVARCHAR(400) NULL,       -- natural key as written in the source
+    column_name      NVARCHAR(100) NULL,       -- column that failed the rule
+    raw_value        NVARCHAR(100) NULL,       -- that column's value as received
+    reason           NVARCHAR(200) NOT NULL,
+    dwh_create_date  DATETIME2     NOT NULL DEFAULT SYSDATETIME()
 );
 GO
