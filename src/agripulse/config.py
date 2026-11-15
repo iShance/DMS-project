@@ -1,8 +1,8 @@
 """Shared constants for the AgriPulse pipeline and mining notebooks.
 
 Every value here has a twin in the SQL scripts (sql/04_silver_load_proc.sql and
-sql/05_gold.sql). Change both together, otherwise the SQL Gold layer and the
-pandas Gold layer stop matching.
+sql/06_gold_load_proc.sql). Change both together, otherwise the SQL Gold layer
+and the pandas Gold layer stop matching.
 """
 
 from pathlib import Path
