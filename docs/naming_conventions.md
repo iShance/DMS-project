@@ -38,10 +38,12 @@ The conventions AgriPulse follows, in SQL Server and in Python.
 
 ## Scripts and code
 
-- SQL scripts: two-digit prefix in run order and an action, e.g. `04_silver_load_proc.sql`.
+- SQL scripts: two-digit prefix in run order and an action, e.g. `02_silver.sql`.
   `sql/run_all.sql` runs them in the right order.
 - Load procedures: `<schema>.load_<schema>` (`bronze.load_bronze`, `silver.load_silver`, `gold.load_gold`).
-- Quality checks in `sql/07_quality_checks.sql` start with `-- check: <name>` and must return zero rows.
-- Python: the package is `src/agripulse`; command-line entry points run as `python -m agripulse.<module>`.
+- Quality checks in `src/quality/checks.sql` start with `-- check: <name>` and must return zero rows.
+- Python: the code is the `src` package, laid out like the course skeleton (`src/ingest`, `src/quality`,
+  `src/semantic`, `src/mining`); command-line entry points run from the project root as
+  `python -m src.<folder>.<module>`, e.g. `python -m src.quality.run_checks`.
 - Metric names in `semantic/metrics.yml` are snake_case and end in their unit where it helps
   (`shock_rate_pct`, `avg_temp_anomaly_c`).

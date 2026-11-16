@@ -1,17 +1,17 @@
 """Shared constants for the AgriPulse pipeline and mining notebooks.
 
-Every value here has a twin in the SQL scripts (sql/04_silver_load_proc.sql and
-sql/06_gold_load_proc.sql). Change both together, otherwise the SQL Gold layer
+Every value here has a twin in the SQL scripts (sql/02_silver.sql and
+sql/03_gold.sql). Change both together, otherwise the SQL Gold layer
 and the pandas Gold layer stop matching.
 """
 
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = PROJECT_ROOT / "datasets"
-SOURCE_DIR = DATA_DIR / "source"
-REFERENCE_DIR = DATA_DIR / "reference"
-GOLD_DIR = DATA_DIR / "gold"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = PROJECT_ROOT / "data"
+SOURCE_DIR = DATA_DIR / "raw"            # the four source files
+REFERENCE_DIR = DATA_DIR / "reference"  # seed tables written for the project
+GOLD_DIR = DATA_DIR / "exports"         # Gold layer exported by src.ingest.pipeline
 FIGURES_DIR = PROJECT_ROOT / "reports" / "figures"
 
 # Gold fact window: the years where all four sources overlap

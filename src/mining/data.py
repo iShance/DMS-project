@@ -1,10 +1,10 @@
 """Load the Gold analytical table for mining.
 
 Two interchangeable sources:
-  * "csv" (default): datasets/gold/ml_dataset.csv, built by agripulse.pipeline
+  * "csv" (default): data/exports/ml_dataset.csv, built by src.ingest.pipeline
     (rebuilt automatically when missing)
   * "sql": the SQL Server view gold.vw_ml_dataset. Needs a connection string in
-    AGRIPULSE_SQL_CONN or in a .env file (see agripulse.db and .env.example), e.g.
+    AGRIPULSE_SQL_CONN or in a .env file (see src.db and .env.example), e.g.
         AGRIPULSE_SQL_CONN="Driver={ODBC Driver 18 for SQL Server};Server=localhost;Database=AgriPulse;Trusted_Connection=yes;TrustServerCertificate=yes"
 """
 
@@ -13,9 +13,9 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from agripulse import config as cfg
-from agripulse import pipeline
-from agripulse.db import get_engine
+from src import config as cfg
+from src.ingest import pipeline
+from src.db import get_engine
 
 ML_CSV = cfg.GOLD_DIR / "ml_dataset.csv"
 

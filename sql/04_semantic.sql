@@ -1,19 +1,19 @@
 /*
 =============================================================================
-AgriPulse - 09_semantic.sql
+AgriPulse - 04_semantic.sql
 =============================================================================
 Semantic layer: the metric catalog and one metric view per business question.
 Everyone (notebooks, reports, a dashboard) reads these views instead of
 rewriting the joins, so a metric means the same thing everywhere.
 
     semantic.metric_catalog              definitions, copied from semantic/metrics.yml
-                                         by  python -m agripulse.semantic
+                                         by  python -m src.semantic.sync_metrics
                                          (which also runs every validation query)
     semantic.v_shock_rate_by_crop_region RQ3  do shocks differ by crop and region?
     semantic.v_shock_rate_by_climate     RQ2  which climate/input conditions go with shocks?
     semantic.v_shock_rate_by_year        trend: are shocks getting more or less frequent?
     semantic.v_shock_detection           RQ1  how well do the models detect shocks?
-                                         (defined in sql/10_ml_outputs.sql, it reads ml.*)
+                                         (defined in sql/07_ml_outputs.sql, it reads ml.*)
 
 All rates use the metric definitions in semantic/metrics.yml:
     shock_rate_pct = 100 * AVG(is_shock) over crop-years
@@ -67,7 +67,7 @@ GO
 -- GRAIN: one row per climate band (country temperature normal x rainfall
 -- normal) x pesticide-use level.
 -- Pesticide use: terciles of pesticide_intensity over all crop-years, the same
--- cut points as the association rules (agripulse.mining.transactions):
+-- cut points as the association rules (src.mining.helpers.transactions):
 -- low < 1st tercile <= medium < 2nd tercile <= high.
 -- ---------------------------------------------------------------------------
 CREATE OR ALTER VIEW semantic.v_shock_rate_by_climate AS

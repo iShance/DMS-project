@@ -5,7 +5,7 @@ applies the same rules step by step so the mining notebooks can run on any
 machine, and so the two Gold layers can be compared row for row.
 
 Run from the project root:
-    python -m agripulse.pipeline          (with src/ on PYTHONPATH)
+    python -m src.ingest.pipeline
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from agripulse import config as cfg
+from src import config as cfg
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ def load_bronze() -> dict[str, pd.DataFrame]:
 # ---------------------------------------------------------------------------
 
 # Reasons written to the reject log, keyed by (Bronze table, failed column);
-# the same texts as silver.reject_log in sql/04_silver_load_proc.sql.
+# the same texts as silver.reject_log in sql/02_silver.sql.
 REJECT_REASONS = {
     ("ref_country", "missing"): "missing country_name",
     ("ref_country", "duplicate"): "duplicate country_name (first row kept)",

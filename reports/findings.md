@@ -24,7 +24,7 @@ Data-quality findings that shape every result (details in `docs/data_quality.md`
 4. 90 of 209 yield entities drop out for lack of climate or pesticide data, including Ethiopia, Nigeria,
    Chad, Yemen and Somalia.
 
-## 2. EDA and OLAP (notebook 01, `sql/08_olap_analysis.sql`)
+## 2. EDA and OLAP (notebook 01, `sql/06_analytics.sql`)
 
 * Shock rate **by crop**: sorghum 18.3 %, soybeans 12.6 %, wheat 11.6 %, maize 10.7 % … sweet potatoes
   7.1 %, potatoes 6.8 %, plantains 6.1 %, yams 5.0 %.

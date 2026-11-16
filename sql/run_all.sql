@@ -3,35 +3,40 @@
 AgriPulse - run_all.sql   (SQLCMD mode)
 =============================================================================
 Builds the whole warehouse from scratch (Bronze, Silver, Gold, semantic and
-ml objects) and runs the quality checks. Then, from the project root:
+ml objects), loads it and runs the quality checks.
 
-    python -m agripulse.semantic    fill + validate semantic.metric_catalog
-    python -m agripulse.score       write model outputs to ml.*
-    pytest                          run every test, including tests/test_sql.py
+Easiest: run  build_database.bat  from the project root. It copies the data
+folder to C:\AgriPulse\data and runs this script.
 
-From a terminal, inside the sql\ folder:
+By hand, from a terminal inside the sql\ folder:
 
-    sqlcmd -S localhost -E -i run_all.sql -v DataPath="C:\AgriPulse\datasets\"
+    sqlcmd -S localhost -E -C -i run_all.sql -v DataPath="C:\AgriPulse\data"
 
-or open it in SSMS, enable Query > SQLCMD Mode, add the line
-    :setvar DataPath "C:\AgriPulse\datasets\"
-at the top, and execute.
+DataPath is the project's data folder (holding raw\ and reference\) as seen
+by the SQL Server service account. Folders under a user profile or OneDrive
+usually are not readable by the service, so copy the data folder to
+C:\AgriPulse\data first.
 
-DataPath must be readable by the SQL Server service account and end with a
-backslash. Folders under a user profile or OneDrive usually are not, so copy
-the datasets folder somewhere like C:\AgriPulse\ first.
+In SSMS, :r with relative paths depends on SSMS's working folder; run the
+scripts one by one instead (README, "Option B").
+
+Then, from the project root:
+    python -m src.semantic.sync_metrics   fill + validate semantic.metric_catalog
+    python -m src.mining.score            write model outputs to ml.*
+    python -m src.quality.run_checks      PASS/FAIL for every quality check
+    pytest                                every test, including tests/test_sql.py
 =============================================================================
 */
 
 :on error exit
 
-:r .\00_init_database.sql
-:r .\01_bronze_ddl.sql
-:r .\02_bronze_load_proc.sql
-:r .\03_silver_ddl.sql
-:r .\04_silver_load_proc.sql
-:r .\05_gold_ddl.sql
-:r .\06_gold_load_proc.sql
+:r .\00_init.sql
+:r .\01_bronze.sql
+:r .\02_silver.sql
+:r .\03_gold.sql
+:r .\04_semantic.sql
+:r .\05_feature_views.sql
+:r .\07_ml_outputs.sql
 
 USE AgriPulse;
 GO
@@ -41,6 +46,4 @@ EXEC silver.load_silver;
 EXEC gold.load_gold;
 GO
 
-:r .\09_semantic.sql
-:r .\10_ml_outputs.sql
-:r .\07_quality_checks.sql
+:r ..\src\quality\checks.sql

@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 from urllib.parse import quote_plus
 
-from agripulse import config as cfg
+from src import config as cfg
 
 ENV_VARS = ("AGRIPULSE_SQL_CONN", "SQLSERVER_CONN")
 

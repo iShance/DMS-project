@@ -2,7 +2,7 @@
 
 import pytest
 
-from agripulse import pipeline
+from src.ingest import pipeline
 
 
 @pytest.fixture(scope="session")
@@ -19,7 +19,7 @@ def ml(layers):
 @pytest.fixture(scope="session")
 def engine():
     """SQL Server engine; SQL tests are skipped when no connection is configured."""
-    from agripulse.db import connection_string, get_engine
+    from src.db import connection_string, get_engine
 
     if not connection_string():
         pytest.skip("no SQL Server connection: set AGRIPULSE_SQL_CONN (see .env.example)")

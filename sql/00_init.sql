@@ -1,13 +1,13 @@
 /*
 =============================================================================
-AgriPulse - 00_init_database.sql
+AgriPulse - 00_init.sql
 =============================================================================
 Creates the AgriPulse database and its six schemas:
     bronze    - raw CSV data, loaded as-is (all columns NVARCHAR) + provenance
     silver    - cleaned, typed, standardized, de-duplicated data + reject log
     gold      - star schema and feature views used for OLAP and data mining
-    semantic  - metric catalog and metric views (sql/09_semantic.sql)
-    ml        - model runs and predictions written back by Python (sql/10_ml_outputs.sql)
+    semantic  - metric catalog and metric views (sql/04_semantic.sql)
+    ml        - model runs and predictions written back by Python (sql/07_ml_outputs.sql)
     audit     - one row per table loaded by a pipeline run (audit.load_log)
 
 WARNING: this script DROPS the AgriPulse database if it already exists.

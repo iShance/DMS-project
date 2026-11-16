@@ -1,10 +1,10 @@
 /*
 =============================================================================
-AgriPulse - 10_ml_outputs.sql
+AgriPulse - 07_ml_outputs.sql
 =============================================================================
 Model outputs written back to SQL Server (SQL -> Python -> SQL).
 
-    gold.features_shock  --read-->  python -m agripulse.score  --write-->  ml.*
+    gold.features_shock  --read-->  python -m src.mining.score  --write-->  ml.*
 
     ml.model_run          one row per model per scoring run: version, features,
                           threshold and test metrics

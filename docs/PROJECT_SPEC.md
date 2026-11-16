@@ -23,7 +23,7 @@ year.
 3. **RQ3.** Do the patterns differ by crop and by region?
    (notebooks 01 and 03, `semantic.v_shock_rate_by_crop_region`)
 4. **Trend.** Are shocks becoming more or less frequent as temperatures rise?
-   (`semantic.v_shock_rate_by_year`, `sql/08_olap_analysis.sql` Q3 and Q8)
+   (`semantic.v_shock_rate_by_year`, `sql/06_analytics.sql` Q3 and Q8)
 
 Answers: `reports/findings.md` §5.
 
@@ -51,22 +51,22 @@ and input features.
 
 ## Layers
 
-- **Bronze** (`sql/01`, `02`): exact copy of each CSV, every column NVARCHAR, plus provenance
+- **Bronze** (`sql/01_bronze.sql`): exact copy of each CSV, every column NVARCHAR, plus provenance
   (`source_file`, `ingested_at`). No cleaning.
-- **Silver** (`sql/03`, `04`): typed, trimmed, country names conformed, de-duplicated; rainfall grid
+- **Silver** (`sql/02_silver.sql`): typed, trimmed, country names conformed, de-duplicated; rainfall grid
   completed. Every row not kept is written to `silver.reject_log` with its reason.
-- **Gold** (`sql/05`, `06`): star schema. **Grain of `gold.fact_crop_year`: one row per country x crop
+- **Gold** (`sql/03_gold.sql`, `sql/05_feature_views.sql`): star schema. **Grain of `gold.fact_crop_year`: one row per country x crop
   x year, 1990-2013**, kept only when the shock label and all four sources exist. Dimensions
   `dim_country`, `dim_crop`, `dim_year`, `dim_climate_band`. Feature view `gold.features_shock`, flat
   view `gold.vw_ml_dataset`.
-- **Semantic** (`sql/09`, `semantic/metrics.yml`): seven metrics, each with name, label, definition,
+- **Semantic** (`sql/04_semantic.sql`, `semantic/metrics.yml`): seven metrics, each with name, label, definition,
   owner, grain, SQL expression, dimensions, null policy and an independent validation query;
-  `python -m agripulse.semantic` loads them into `semantic.metric_catalog` and validates them.
-- **ML** (`sql/10`, `src/agripulse/score.py`): model runs and predictions written back to SQL.
+  `python -m src.semantic.sync_metrics` loads them into `semantic.metric_catalog` and validates them.
+- **ML** (`sql/07_ml_outputs.sql`, `src/mining/score.py`): model runs and predictions written back to SQL.
 - **Audit:** every load procedure writes one row per table to `audit.load_log`.
 
-The pandas module `src/agripulse/pipeline.py` applies the same Bronze/Silver/Gold rules, so the
-analysis runs without SQL Server; `agripulse.data.compare_with_sql()` and `tests/test_sql.py` check
+The pandas module `src/ingest/pipeline.py` applies the same Bronze/Silver/Gold rules, so the
+analysis runs without SQL Server; `src.mining.data.compare_with_sql()` and `tests/test_sql.py` check
 that both give identical results.
 
 ## Integration challenges solved
@@ -88,11 +88,11 @@ that both give identical results.
 | joins across sources | `gold.load_gold` step 4 (yield + rainfall + temperature + pesticides) |
 | CTEs | `silver.load_silver`, `gold.load_gold`, `semantic.v_shock_rate_by_climate` |
 | window functions | LAG and `AVG ... ROWS BETWEEN 5 PRECEDING AND 1 PRECEDING` in `gold.load_gold`; ROW_NUMBER de-duplication in Silver |
-| conditional aggregation | `sql/07` profiling, `semantic.v_shock_detection`, `sql/08` |
-| data-quality queries | `sql/07_quality_checks.sql` (13 zero-row checks) |
-| temporal analysis | baseline windows, `semantic.v_shock_rate_by_year`, `sql/08` Q3, Q8 |
+| conditional aggregation | `src/quality/profiling.sql`, `semantic.v_shock_detection`, `sql/06_analytics.sql` |
+| data-quality queries | `src/quality/checks.sql` (13 zero-row checks) |
+| temporal analysis | baseline windows, `semantic.v_shock_rate_by_year`, `sql/06_analytics.sql` Q3, Q8 |
 | dimensional loading | `gold.load_gold` (surrogate keys by ROW_NUMBER) |
-| OLAP | `sql/08_olap_analysis.sql`: ROLLUP, CUBE, PIVOT, slice, dice, drill-down |
+| OLAP | `sql/06_analytics.sql`: ROLLUP, CUBE, PIVOT, slice, dice, drill-down |
 | feature views | `gold.features_shock` |
 | semantic metric views | `semantic.v_*` |
 | metric reconciled independently | every metric in `semantic/metrics.yml` has a validation query rebuilt from Silver by a different route; the whole Gold layer is also reconciled against the pandas implementation |
@@ -130,10 +130,10 @@ The SQL tests run when `AGRIPULSE_SQL_CONN` is set and are skipped otherwise.
 | milestone | status |
 |---|---|
 | M1 problem and sources | done: README, this file, source register |
-| M2 Bronze and profiling | done: `sql/01`-`02`, `docs/data_quality.md` |
-| M3 Silver and quality | done: `sql/03`-`04`, reject log, `sql/07` |
-| M4 Gold and semantic layer | done: `sql/05`-`06`, `sql/09`, `semantic/metrics.yml` |
-| M5 mining | done: notebooks 02-03, `agripulse.score`, `ml.*` |
+| M2 Bronze and profiling | done: `sql/01_bronze.sql`, `docs/bronze_report.docx`, `docs/data_quality.md` |
+| M3 Silver and quality | done: `sql/02_silver.sql`, reject log, `src/quality/checks.sql`, `docs/silver_report.docx` |
+| M4 Gold and semantic layer | done: `sql/03_gold.sql`, `sql/04_semantic.sql`, `semantic/metrics.yml`, `docs/gold_report.docx` |
+| M5 mining | done: notebooks 02-03, `src.mining.score`, `ml.*` |
 | M6 dashboard or app | not built: the semantic views are ready to connect to Power BI or a similar tool |
 | M7 report and demo | `reports/findings.md`; the notebooks are the reproducible demo |
 

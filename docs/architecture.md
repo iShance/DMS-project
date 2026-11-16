@@ -3,8 +3,8 @@
 ## Data flow
 
 ```
- datasets/source/*.csv ──┐
- datasets/reference/*.csv┤
+ data/raw/*.csv ──┐
+ data/reference/*.csv┤
                          ▼
  ┌──────────────── BRONZE (raw, NVARCHAR) ────────────────┐
  │ fao_yield  wb_rainfall  wb_temperature  fao_pesticides │  bronze.load_bronze
@@ -30,7 +30,7 @@
           ▼                                    ▼
  ┌──── SEMANTIC ───────────────┐     notebooks/01-03 (EDA, OLAP, classification,
  │ metric_catalog (metrics.yml)│     association rules)
- │ v_shock_rate_by_crop_region │     python -m agripulse.score
+ │ v_shock_rate_by_crop_region │     python -m src.mining.score
  │ v_shock_rate_by_climate     │       reads gold.features_shock ──┐
  │ v_shock_rate_by_year        │                                   ▼
  │ v_shock_detection  <────────┼──── ┌──── ML ──────────────────────────┐
@@ -43,11 +43,11 @@ The same rules are implemented twice:
 
 | layer | SQL Server (reference) | pandas mirror |
 |---|---|---|
-| Bronze | `sql/01_bronze_ddl.sql`, `sql/02_bronze_load_proc.sql` | `pipeline.load_bronze()` |
-| Silver | `sql/03_silver_ddl.sql`, `sql/04_silver_load_proc.sql` | `pipeline.build_silver()` |
-| Gold | `sql/05_gold_ddl.sql`, `sql/06_gold_load_proc.sql` | `pipeline.build_gold()`, `pipeline.ml_dataset()` |
+| Bronze | `sql/01_bronze.sql` | `pipeline.load_bronze()` |
+| Silver | `sql/02_silver.sql` | `pipeline.build_silver()` |
+| Gold | `sql/03_gold.sql`, `sql/05_feature_views.sql` | `pipeline.build_gold()`, `pipeline.ml_dataset()` |
 
-`agripulse.data.compare_with_sql()` compares the two Gold outputs column by column.
+`src.mining.data.compare_with_sql()` compares the two Gold outputs column by column.
 
 ## Bronze
 
@@ -117,12 +117,12 @@ year (gap years are NULL). `LAG` then always means "previous calendar year", and
   assigned from each country's normals
 
 Foreign keys are not declared, so every table can be truncated on reload. Integrity is checked in
-`sql/07_quality_checks.sql` (duplicate grain, orphan keys, label consistency).
+`src/quality/checks.sql` (duplicate grain, orphan keys, label consistency).
 
 ### Parameters
 
 `gold.load_gold` accepts `@shock_threshold_pct` (default −15), `@min_baseline_years` (3), `@start_year`
-(1990) and `@end_year` (2013). The pandas constants are in `src/agripulse/config.py`; change both
+(1990) and `@end_year` (2013). The pandas constants are in `src/config.py`; change both
 together.
 
 ## Semantic layer
@@ -131,10 +131,10 @@ together.
 shock persistence, average temperature anomaly, average pesticide intensity), each with a definition,
 owner, grain, SQL expression, dimensions, null policy and an **independent validation query**: a query
 that rebuilds the number from Silver by a different route (correlated subqueries instead of the Gold
-window functions, for example). `python -m agripulse.semantic` copies the file into
+window functions, for example). `python -m src.semantic.sync_metrics` copies the file into
 `semantic.metric_catalog`, computes every metric both ways and stores the two values and PASS/FAIL.
 
-The metric views (`sql/09_semantic.sql`, one per business question) use these definitions:
+The metric views (`sql/04_semantic.sql`, one per business question) use these definitions:
 
 | view | grain | question |
 |---|---|---|
@@ -145,9 +145,9 @@ The metric views (`sql/09_semantic.sql`, one per business question) use these de
 
 ## ML outputs (SQL -> Python -> SQL)
 
-`python -m agripulse.score` reads `gold.features_shock`, trains the baseline ("last year's label") and
+`python -m src.mining.score` reads `gold.features_shock`, trains the baseline ("last year's label") and
 the improved model (Bagging, the best by CV in notebook 02) with the evaluation protocol of
-`agripulse.mining`, and appends to:
+`src.mining.helpers`, and appends to:
 
 * `ml.model_run`: one row per model and run (version, features, train and test years, threshold, CV and
   test metrics)

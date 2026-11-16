@@ -2,7 +2,7 @@
 
 import yaml
 
-from agripulse import semantic
+from src.semantic import sync_metrics as semantic
 
 
 def _metrics():

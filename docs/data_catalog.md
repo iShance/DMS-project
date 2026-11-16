@@ -3,8 +3,8 @@
 The analytical tables and views. Every column of every layer, with type, nullability, source and quality
 rule, is also listed in [`data_dictionary.csv`](data_dictionary.csv).
 
-The Gold layer exists in SQL Server (`gold.*`) and as CSV files in `datasets/gold/` (written by
-`agripulse.pipeline`). `ml_dataset.csv` / `gold.vw_ml_dataset` is the flat table used for mining.
+The Gold layer exists in SQL Server (`gold.*`) and as CSV files in `data/exports/` (written by
+`src.ingest.pipeline`). `ml_dataset.csv` / `gold.vw_ml_dataset` is the flat table used for mining.
 
 ## gold.fact_crop_year: one row per country x crop x year (1990-2013)
 
@@ -37,7 +37,7 @@ The Gold layer exists in SQL Server (`gold.*`) and as CSV files in `datasets/gol
 | column | description |
 |---|---|
 | country_key | surrogate key (ROW_NUMBER over the name) |
-| country_name | conformed name (`datasets/reference/country_reference.csv`) |
+| country_name | conformed name (`data/reference/country_reference.csv`) |
 | iso3 | ISO 3166-1 alpha-3 (historical codes for former states, e.g. SUN, YUG) |
 | region | World Bank region (7 regions) |
 | temp_normal_c | mean annual temperature 1961-1990 |
@@ -73,17 +73,17 @@ inclusive and the upper bound exclusive.
 | Hot | ≥ 25 | | Humid | 1,000-2,000 |
 | | | | Very humid | ≥ 2,000 |
 
-## gold.vw_ml_dataset / datasets/gold/ml_dataset.csv
+## gold.vw_ml_dataset / data/exports/ml_dataset.csv
 
 All fact measures plus the descriptive attributes `country_name, iso3, region, crop_name, crop_group,
 year, decade, climate_band, temp_band, rain_band`. 16,339 rows, 10.2 % shocks.
 
 ## gold.features_shock: one row per country x crop x year
 
-The documented feature view the classifier reads (`python -m agripulse.score`): the keys
+The documented feature view the classifier reads (`python -m src.mining.score`): the keys
 `country_key, crop_key, year_key`, the descriptive `country_name, crop_name, region, year`, the
 features `rain_dev_pct, temp_anomaly_c, pesticide_intensity, rainfall_mm, prev_yield_dev_pct,
-prev_is_shock`, and the label `is_shock`. Feature sets A, B and C in `src/agripulse/mining.py` are
+prev_is_shock`, and the label `is_shock`. Feature sets A, B and C in `src/mining/helpers.py` are
 subsets of these columns.
 
 ## Semantic metric views

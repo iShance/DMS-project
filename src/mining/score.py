@@ -3,7 +3,7 @@
 SQL -> Python -> SQL:
   1. read the documented feature view gold.features_shock
   2. fit the baseline and the improved model with the protocol of
-     agripulse.mining (train 1990-2007 with forward-chaining CV, threshold from
+     src.mining.helpers (train 1990-2007 with forward-chaining CV, threshold from
      the CV predictions, test 2008-2013), using the full feature set C
   3. write one row per model to ml.model_run and the test-year predictions to
      ml.shock_prediction, all tagged with model_name, model_version, run_id
@@ -13,9 +13,9 @@ The improved model is the one with the best CV ROC-AUC in notebook 02
 (Bagging), so its test metrics equal that row of
 reports/tables/classification_results.csv.
 
-Run from the project root (with src/ on PYTHONPATH):
-    python -m agripulse.score              read SQL, write SQL (needs AGRIPULSE_SQL_CONN)
-    python -m agripulse.score --dry-run    read the Gold CSV files, write nothing
+Run from the project root:
+    python -m src.mining.score              read SQL, write SQL (needs AGRIPULSE_SQL_CONN)
+    python -m src.mining.score --dry-run    read the Gold CSV files, write nothing
 """
 
 from __future__ import annotations
@@ -26,8 +26,8 @@ import uuid
 
 import pandas as pd
 
-from agripulse import config as cfg
-from agripulse import mining as mn
+from src import config as cfg
+from src.mining import helpers as mn
 
 MODEL_VERSION = "1.0"
 FEATURE_VIEW = "gold.features_shock"
@@ -117,9 +117,9 @@ def main() -> int:
 
     if args.dry_run:
         engine, features = None, load_features_csv()
-        print(f"read {len(features):,} rows from datasets/gold/ (dry run)")
+        print(f"read {len(features):,} rows from data/exports/ (dry run)")
     else:
-        from agripulse.db import get_engine
+        from src.db import get_engine
 
         engine = get_engine()
         features = load_features(engine)

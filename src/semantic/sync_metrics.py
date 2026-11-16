@@ -6,9 +6,9 @@ semantic/metrics.yml is the source of truth. For each metric this module
      and runs its independent validation_query; both must give the same number.
 The two values and PASS/FAIL are stored back in the catalog.
 
-Run from the project root (with src/ on PYTHONPATH):
-    python -m agripulse.semantic            sync + validate (needs AGRIPULSE_SQL_CONN)
-    python -m agripulse.semantic --check    check the YAML file only, no database
+Run from the project root:
+    python -m src.semantic.sync_metrics            sync + validate (needs AGRIPULSE_SQL_CONN)
+    python -m src.semantic.sync_metrics --check    check the YAML file only, no database
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from agripulse import config as cfg
+from src import config as cfg
 
 METRICS_FILE = cfg.PROJECT_ROOT / "semantic" / "metrics.yml"
 REQUIRED_KEYS = ("name", "label", "definition", "owner", "grain", "sql", "dimensions",
@@ -103,7 +103,7 @@ def main() -> int:
     if args.check:
         return 0
 
-    from agripulse.db import get_engine
+    from src.db import get_engine
 
     engine = get_engine()
     print(f"synced {sync_metrics(engine, metrics)} metrics to semantic.metric_catalog")

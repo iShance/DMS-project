@@ -24,7 +24,7 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.tree import DecisionTreeClassifier, _tree
 
-from agripulse import config as cfg
+from src import config as cfg
 
 TARGET = "is_shock"
 

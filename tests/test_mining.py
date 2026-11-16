@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from agripulse import config as cfg
-from agripulse import mining as mn
-from agripulse import score
+from src import config as cfg
+from src.mining import helpers as mn
+from src.mining import score
 
 
 def test_split_is_time_ordered(ml):
@@ -55,7 +55,7 @@ def test_transactions_have_one_item_per_attribute(ml):
 
 @pytest.mark.slow
 def test_scoring_reproduces_the_reported_model_and_is_complete():
-    """agripulse.score on the Gold CSVs: same Bagging metrics as notebook 02, one prediction per test row."""
+    """src.mining.score on the Gold CSVs: same Bagging metrics as notebook 02, one prediction per test row."""
     runs, preds = score.score(score.load_features_csv())
     report = pd.read_csv(cfg.PROJECT_ROOT / "reports" / "tables" / "classification_results.csv")
     row = report[(report.model == "Bagging") & report.feature_set.str.startswith("C.")].iloc[0]

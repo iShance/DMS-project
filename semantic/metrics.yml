@@ -5,9 +5,9 @@
 #   validation_query  an INDEPENDENT query (rebuilt from Silver or by a different route) that must
 #                     return the same single number
 #
-# Sync to SQL and validate:  python -m agripulse.semantic   (writes semantic.metric_catalog)
+# Sync to SQL and validate:  python -m src.semantic.sync_metrics   (writes semantic.metric_catalog)
 # Check the file:            pytest tests/test_metrics_yaml.py
-# The metric views that use these definitions are in sql/09_semantic.sql.
+# The metric views that use these definitions are in sql/04_semantic.sql.
 
 metrics:
   - name: crop_year_count

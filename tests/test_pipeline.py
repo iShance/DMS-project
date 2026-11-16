@@ -10,8 +10,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from agripulse import config as cfg
-from agripulse import pipeline
+from src import config as cfg
+from src.ingest import pipeline
 
 KEYS = ["country_name", "crop_name", "year"]
 

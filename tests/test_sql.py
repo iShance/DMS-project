@@ -1,40 +1,26 @@
 """SQL Server warehouse tests (skipped unless AGRIPULSE_SQL_CONN is set).
 
-Expected state: the warehouse built with sql/run_all.sql, then
-    python -m agripulse.semantic
-    python -m agripulse.score
+Expected state: the warehouse built with sql/run_all.sql (or build_database.bat), then
+    python -m src.semantic.sync_metrics
+    python -m src.mining.score
 """
-
-import re
 
 import pandas as pd
 import pytest
 
-from agripulse import config as cfg
-from agripulse import data, semantic
+from src import config as cfg
+from src.mining import data
+from src.quality.run_checks import load_checks
+from src.semantic import sync_metrics as semantic
 
 pytestmark = pytest.mark.sql
 
-CHECKS_FILE = cfg.PROJECT_ROOT / "sql" / "07_quality_checks.sql"
-
-
-def _quality_checks():
-    """(name, query) for every '-- check: name' block in 07_quality_checks.sql."""
-    text = CHECKS_FILE.read_text(encoding="utf-8")
-    checks = []
-    for block in re.split(r"^-- check:\s*", text, flags=re.M)[1:]:
-        name, _, rest = block.partition("\n")
-        statement = rest[: rest.index(";")]
-        query = "\n".join(line for line in statement.splitlines() if not line.lstrip().startswith("--"))
-        checks.append((name.strip(), query.strip()))
-    return checks
-
 
 def test_quality_checks_file_has_checks():
-    assert len(_quality_checks()) >= 10
+    assert len(load_checks()) >= 10
 
 
-@pytest.mark.parametrize("name,query", _quality_checks(), ids=[n for n, _ in _quality_checks()])
+@pytest.mark.parametrize("name,query", load_checks(), ids=[n for n, _ in load_checks()])
 def test_quality_check_returns_no_rows(engine, name, query):
     with engine.connect() as con:
         rows = con.exec_driver_sql(query).fetchall()
@@ -105,7 +91,7 @@ def test_semantic_views_match_pandas(engine, ml):
 def _latest_run(engine):
     runs = pd.read_sql("SELECT * FROM ml.model_run", engine)
     if runs.empty:
-        pytest.fail("ml.model_run is empty: run  python -m agripulse.score  first")
+        pytest.fail("ml.model_run is empty: run  python -m src.mining.score  first")
     return runs[runs.generated_at == runs.generated_at.max()]
 
 
