@@ -6,7 +6,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
-from agripulse import config as cfg
+from src import config as cfg
 
 SURFACE = "#fcfcfb"
 INK = "#0b0b0b"

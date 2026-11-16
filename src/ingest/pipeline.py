@@ -5,7 +5,7 @@ applies the same rules step by step so the mining notebooks can run on any
 machine, and so the two Gold layers can be compared row for row.
 
 Run from the project root:
-    python -m agripulse.pipeline          (with src/ on PYTHONPATH)
+    python -m src.ingest.pipeline
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from agripulse import config as cfg
+from src import config as cfg
 
 
 # ---------------------------------------------------------------------------
@@ -41,10 +41,14 @@ BRONZE_COLUMNS = {
 
 
 def load_bronze() -> dict[str, pd.DataFrame]:
+    """Raw files as text, plus the provenance columns source_file and ingested_at."""
     bronze = {}
+    ingested_at = pd.Timestamp.now()
     for name, path in BRONZE_FILES.items():
         df = pd.read_csv(path, dtype=str, keep_default_na=False, encoding="utf-8")
         df.columns = BRONZE_COLUMNS[name]
+        df["source_file"] = str(path)
+        df["ingested_at"] = ingested_at
         bronze[name] = df
     return bronze
 
@@ -52,6 +56,30 @@ def load_bronze() -> dict[str, pd.DataFrame]:
 # ---------------------------------------------------------------------------
 # Silver: typed, trimmed, conformed country names, de-duplicated
 # ---------------------------------------------------------------------------
+
+# Reasons written to the reject log, keyed by (Bronze table, failed column);
+# the same texts as silver.reject_log in sql/02_silver.sql.
+REJECT_REASONS = {
+    ("ref_country", "missing"): "missing country_name",
+    ("ref_country", "duplicate"): "duplicate country_name (first row kept)",
+    ("ref_country_alias", "missing"): "missing source_name",
+    ("ref_country_alias", "duplicate"): "duplicate source_name (first row kept)",
+    ("fao_yield", "element"): "not a yield record (element / unit)",
+    ("fao_yield", "year"): "missing or invalid year",
+    ("fao_yield", "area_code"): "FAO China aggregate (area 351) double counts its parts",
+    ("fao_yield", "value"): "missing or zero yield (FAO missing record)",
+    ("fao_yield", "area"): "duplicate country x crop x year after name conforming (lowest area code kept)",
+    ("wb_rainfall", "year"): "missing or invalid year",
+    ("wb_rainfall", "average_rain_fall_mm_per_year"): "missing or non-numeric rainfall (blank or ..)",
+    ("wb_rainfall", "negative"): "negative rainfall",
+    ("wb_temperature", "year"): "missing or invalid year",
+    ("wb_temperature", "avg_temp"): "missing or non-numeric temperature",
+    ("fao_pesticides", "item"): "not Use / Pesticides (total)",
+    ("fao_pesticides", "year"): "missing or invalid year",
+    ("fao_pesticides", "value"): "missing or negative pesticide value",
+}
+REJECT_COLUMNS = ["source_table", "business_key", "column_name", "raw_value", "reason"]
+
 
 def _num(s: pd.Series) -> pd.Series:
     """TRY_CAST equivalent: blanks, '..' and 'NA' become NaN."""
@@ -63,43 +91,96 @@ def _conform(names: pd.Series, aliases: dict[str, str]) -> pd.Series:
     return trimmed.map(aliases).fillna(trimmed)
 
 
+def _text(bronze: dict[str, pd.DataFrame], name: str) -> pd.DataFrame:
+    """The CSV columns of a Bronze table, trimmed (provenance columns left out)."""
+    return bronze[name][BRONZE_COLUMNS[name]].apply(lambda c: c.str.strip())
+
+
+def _rejects(table: str, rows: pd.DataFrame, key: pd.Series, column: pd.Series,
+             raw: pd.Series, reason_key: pd.Series | None = None) -> pd.DataFrame:
+    """Reject-log rows for `rows`; reason_key defaults to the failed column.
+
+    An empty raw value is stored as missing (NaN), as BULK INSERT loads an
+    empty CSV field as NULL.
+    """
+    reason_key = column if reason_key is None else reason_key
+    raw = pd.Series(np.asarray(raw, dtype=object), index=rows.index)
+    out = pd.DataFrame({
+        "source_table": f"bronze.{table}",
+        "business_key": key,
+        "column_name": column,
+        "raw_value": raw.where(raw != ""),
+        "reason": [REJECT_REASONS[(table, k)] for k in reason_key],
+    }, index=rows.index)
+    return out[REJECT_COLUMNS]
+
+
 def build_silver(bronze: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
-    alias_df = bronze["ref_country_alias"].apply(lambda c: c.str.strip())
+    rejects = []
+
+    # --- reference tables (first row wins on duplicates, blanks rejected) ---
+    country = _text(bronze, "ref_country")
+    blank, dup = country.country_name == "", country.country_name.duplicated() & (country.country_name != "")
+    bad = country[blank | dup]
+    rejects.append(_rejects("ref_country", bad, bad.country_name, pd.Series("country_name", bad.index),
+                            bad.country_name, np.where(blank[bad.index], "missing", "duplicate")))
+    country = country[~blank & ~dup]
+
+    alias_df = _text(bronze, "ref_country_alias")
+    blank, dup = alias_df.source_name == "", alias_df.source_name.duplicated() & (alias_df.source_name != "")
+    bad = alias_df[blank | dup]
+    rejects.append(_rejects("ref_country_alias", bad, bad.source_name, pd.Series("source_name", bad.index),
+                            bad.source_name, np.where(blank[bad.index], "missing", "duplicate")))
+    alias_df = alias_df[~blank & ~dup]
     aliases = dict(zip(alias_df.source_name, alias_df.country_name))
 
-    country = bronze["ref_country"].apply(lambda c: c.str.strip())
-    country = country[country.country_name != ""].drop_duplicates("country_name")
-
     # --- FAO yield -------------------------------------------------------
-    y = bronze["fao_yield"].copy()
+    raw = _text(bronze, "fao_yield")
+    y = bronze["fao_yield"][BRONZE_COLUMNS["fao_yield"]].copy()
     y["area_code"] = _num(y.area_code)
     y["item_code"] = _num(y.item_code)
     y["year"] = _num(y.year)
     y["yield_hg_ha"] = _num(y.value)
-    y = y[
-        (y.element.str.strip() == "Yield")
-        & (y.unit.str.strip() == "hg/ha")
-        & (y.area_code != cfg.FAO_CHINA_AGGREGATE_CODE)
-        & y.year.notna()
-        & (y.yield_hg_ha > 0)  # 0 hg/ha in FAO data marks a missing record
-    ].copy()
-    y["source_area"] = y.area.str.strip()
+    failed = pd.Series(np.select(
+        [(raw.element != "Yield") | (raw.unit != "hg/ha"),
+         y.year.isna(),
+         y.area_code == cfg.FAO_CHINA_AGGREGATE_CODE,
+         ~(y.yield_hg_ha > 0)],  # 0 hg/ha in FAO data marks a missing record
+        ["element", "year", "area_code", "value"], default=""), index=y.index)
+    y["source_area"] = raw.area
     y["country_name"] = _conform(y.area, aliases)
-    y["crop_name"] = y.item.str.strip()
+    y["crop_name"] = raw.item
     y["crop_group"] = y.crop_name.map(cfg.CROP_GROUPS).fillna("Other")
-    y = (y.sort_values(["country_name", "crop_name", "year", "area_code"])
-           .drop_duplicates(["country_name", "crop_name", "year"]))
+    kept = y[failed == ""].sort_values(["country_name", "crop_name", "year", "area_code"])
+    dup_idx = kept.index[kept.duplicated(["country_name", "crop_name", "year"])]
+    failed[dup_idx] = "area"
+    bad = raw[failed != ""]
+    col = failed[bad.index]
+    raw_value = np.select(
+        [col == "element", col == "year", col == "area_code", col == "value"],
+        [bad.element + " / " + bad.unit, bad.year, bad.area_code, bad.value], default=bad.area)
+    rejects.append(_rejects("fao_yield", bad, bad.area + " | " + bad.item + " | " + bad.year,
+                            col, raw_value))
+    y = kept.drop(dup_idx)
     silver_yield = y[["country_name", "source_area", "area_code", "crop_name", "item_code",
                       "crop_group", "year", "yield_hg_ha"]].rename(
         columns={"area_code": "fao_area_code", "item_code": "fao_item_code"})
     silver_yield = silver_yield.astype({"fao_area_code": int, "fao_item_code": int, "year": int})
 
     # --- World Bank rainfall --------------------------------------------
-    r = bronze["wb_rainfall"].copy()
+    raw = _text(bronze, "wb_rainfall")
+    r = bronze["wb_rainfall"][BRONZE_COLUMNS["wb_rainfall"]].copy()
     r["country_name"] = _conform(r.area, aliases)
     r["year"] = _num(r.year)
     r["rainfall_mm"] = _num(r.average_rain_fall_mm_per_year)
-    r = r[r.year.notna() & (r.rainfall_mm >= 0)]
+    ok = r.year.notna() & (r.rainfall_mm >= 0)
+    bad, rb = raw[~ok], r[~ok]
+    col = np.where(rb.year.isna(), "year", "average_rain_fall_mm_per_year")
+    reason = np.where(rb.year.isna(), "year",
+                      np.where(rb.rainfall_mm.isna(), "average_rain_fall_mm_per_year", "negative"))
+    rejects.append(_rejects("wb_rainfall", bad, bad.area + " | " + bad.year, col,
+                            np.where(rb.year.isna(), bad.year, bad.average_rain_fall_mm_per_year), reason))
+    r = r[ok]
     r = r.groupby(["country_name", "year"], as_index=False).rainfall_mm.mean()
     # Complete country x year grid; gaps (blank cells, and 1988/2003 which are
     # absent from the file) get the country's long-term mean.
@@ -112,26 +193,35 @@ def build_silver(bronze: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     silver_rain = rain.astype({"year": int})
 
     # --- Temperature (several city records per country-year) ------------
-    t = bronze["wb_temperature"].copy()
+    raw = _text(bronze, "wb_temperature")
+    t = bronze["wb_temperature"][BRONZE_COLUMNS["wb_temperature"]].copy()
     t["country_name"] = _conform(t.country, aliases)
     t["year"] = _num(t.year)
     t["avg_temp"] = _num(t.avg_temp)
-    t = t[t.year.notna() & t.avg_temp.notna()]
+    ok = t.year.notna() & t.avg_temp.notna()
+    bad, tb = raw[~ok], t[~ok]
+    col = np.where(tb.year.isna(), "year", "avg_temp")
+    rejects.append(_rejects("wb_temperature", bad, bad.country + " | " + bad.year, col,
+                            np.where(tb.year.isna(), bad.year, bad.avg_temp)))
+    t = t[ok]
     silver_temp = (t.groupby(["country_name", "year"])
                     .agg(avg_temp_c=("avg_temp", "mean"), n_records=("avg_temp", "size"))
                     .reset_index().astype({"year": int}))
 
     # --- FAO pesticides --------------------------------------------------
-    p = bronze["fao_pesticides"].copy()
+    raw = _text(bronze, "fao_pesticides")
+    p = bronze["fao_pesticides"][BRONZE_COLUMNS["fao_pesticides"]].copy()
     p["country_name"] = _conform(p.area, aliases)
     p["year"] = _num(p.year)
     p["pesticides_tonnes"] = _num(p.value)
-    p = p[
-        (p.element.str.strip() == "Use")
-        & (p.item.str.strip() == "Pesticides (total)")
-        & p.year.notna()
-        & (p.pesticides_tonnes >= 0)
-    ]
+    not_item = (raw.element != "Use") | (raw.item != "Pesticides (total)")
+    ok = ~not_item & p.year.notna() & (p.pesticides_tonnes >= 0)
+    bad = raw[~ok]
+    col = np.select([not_item[~ok], p.year[~ok].isna()], ["item", "year"], default="value")
+    raw_value = np.select([col == "item", col == "year"],
+                          [bad.element + " / " + bad.item, bad.year], default=bad.value)
+    rejects.append(_rejects("fao_pesticides", bad, bad.area + " | " + bad.year, col, raw_value))
+    p = p[ok]
     silver_pest = (p.groupby(["country_name", "year"], as_index=False).pesticides_tonnes.mean()
                     .astype({"year": int}))
 
@@ -141,6 +231,7 @@ def build_silver(bronze: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
         "wb_rainfall": silver_rain.reset_index(drop=True),
         "wb_temperature": silver_temp,
         "fao_pesticides": silver_pest,
+        "reject_log": pd.concat(rejects, ignore_index=True),
     }
 
 

@@ -1,10 +1,10 @@
 /*
 =============================================================================
-AgriPulse - 07_quality_checks.sql
+AgriPulse - src/quality/profiling.sql
 =============================================================================
-Data quality checks after a full load. Every query in the "expect 0 rows"
-sections should return nothing; the profiling queries document known source
-issues for the report.
+Profiling after a full load: row counts per layer and the known source
+issues documented in docs/data_quality.md and the layer reports in docs/.
+These queries return rows on purpose; the zero-row checks are in checks.sql.
 =============================================================================
 */
 
@@ -23,58 +23,12 @@ UNION ALL SELECT 'silver.fao_yield', COUNT(*) FROM silver.fao_yield
 UNION ALL SELECT 'silver.wb_rainfall', COUNT(*) FROM silver.wb_rainfall
 UNION ALL SELECT 'silver.wb_temperature', COUNT(*) FROM silver.wb_temperature
 UNION ALL SELECT 'silver.fao_pesticides', COUNT(*) FROM silver.fao_pesticides
+UNION ALL SELECT 'silver.reject_log', COUNT(*) FROM silver.reject_log
 UNION ALL SELECT 'gold.dim_country', COUNT(*) FROM gold.dim_country
 UNION ALL SELECT 'gold.dim_crop', COUNT(*) FROM gold.dim_crop
 UNION ALL SELECT 'gold.dim_year', COUNT(*) FROM gold.dim_year
 UNION ALL SELECT 'gold.dim_climate_band', COUNT(*) FROM gold.dim_climate_band
 UNION ALL SELECT 'gold.fact_crop_year', COUNT(*) FROM gold.fact_crop_year;
-
--- ===========================================================================
--- Silver: expect 0 rows
--- ===========================================================================
-
--- Yield countries that are missing from the country reference
-SELECT DISTINCT y.country_name
-FROM silver.fao_yield y
-LEFT JOIN silver.country c ON c.country_name = y.country_name
-WHERE c.country_name IS NULL;
-
--- Aliases that point to a name not in the reference
-SELECT a.*
-FROM silver.country_alias a
-LEFT JOIN silver.country c ON c.country_name = a.country_name
-WHERE c.country_name IS NULL;
-
--- Non-positive yields, or temperatures outside a physical range
-SELECT * FROM silver.fao_yield WHERE yield_hg_ha <= 0;
-SELECT * FROM silver.wb_temperature WHERE avg_temp_c NOT BETWEEN -30 AND 45;
-
--- ===========================================================================
--- Gold: expect 0 rows
--- ===========================================================================
-
--- Duplicate grain
-SELECT country_key, crop_key, year_key, COUNT(*) AS n
-FROM gold.fact_crop_year
-GROUP BY country_key, crop_key, year_key
-HAVING COUNT(*) > 1;
-
--- Orphan foreign keys
-SELECT f.*
-FROM gold.fact_crop_year f
-LEFT JOIN gold.dim_country c ON c.country_key = f.country_key
-LEFT JOIN gold.dim_crop cr ON cr.crop_key = f.crop_key
-LEFT JOIN gold.dim_year y ON y.year_key = f.year_key
-WHERE c.country_key IS NULL OR cr.crop_key IS NULL OR y.year_key IS NULL;
-
--- Facts without a climate band
-SELECT * FROM gold.fact_crop_year WHERE climate_band_key IS NULL;
-
--- Label consistent with the deviation (threshold -15 %)
-SELECT *
-FROM gold.fact_crop_year
-WHERE (is_shock = 1 AND yield_dev_pct > -15)
-   OR (is_shock = 0 AND yield_dev_pct <= -15);
 
 -- ===========================================================================
 -- Profiling: known source issues (documented in docs/data_quality.md)
@@ -116,7 +70,13 @@ WHERE y.year BETWEEN 1990 AND 2013
 GROUP BY y.country_name
 ORDER BY yield_rows DESC;
 
--- 4. Shock rate (class balance of the label)
+-- 4. Rows rejected in Silver, by source and reason
+SELECT source_table, reason, COUNT(*) AS rows_rejected
+FROM silver.reject_log
+GROUP BY source_table, reason
+ORDER BY source_table, rows_rejected DESC;
+
+-- 5. Shock rate (class balance of the label)
 SELECT
     COUNT(*)                         AS fact_rows,
     SUM(CAST(is_shock AS INT))       AS shocks,

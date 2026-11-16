@@ -1,9 +1,10 @@
 /*
 =============================================================================
-AgriPulse - 08_olap_analysis.sql
+AgriPulse - 06_analytics.sql
 =============================================================================
-OLAP queries on the Gold star schema: roll-up, drill-down, slice, dice and
-pivot of the shock rate by crop, region, decade and climate band.
+Business queries (OLAP) on the Gold star schema: roll-up, cube, pivot, slice,
+dice and drill-down of the shock rate by crop, region, decade and climate
+band. Each query starts with its question and the grain of its result.
 =============================================================================
 */
 
@@ -12,6 +13,8 @@ GO
 
 -- ---------------------------------------------------------------------------
 -- Q1. Roll-up: region -> crop group -> crop  (GROUPING() labels the subtotals)
+--     Question: where are shocks most frequent, from region down to crop?
+--     Grain: one row per region x crop group x crop, plus subtotal rows.
 -- ---------------------------------------------------------------------------
 SELECT
     CASE WHEN GROUPING(c.region) = 1 THEN '(All regions)' ELSE c.region END          AS region,
@@ -29,6 +32,8 @@ ORDER BY GROUPING(c.region), c.region, GROUPING(cr.crop_group), cr.crop_group,
 
 -- ---------------------------------------------------------------------------
 -- Q2. Cube: crop group x decade, every combination of subtotals
+--     Question: has the shock rate of each crop group changed by decade?
+--     Grain: one row per crop group x decade, plus every subtotal.
 -- ---------------------------------------------------------------------------
 SELECT
     CASE WHEN GROUPING(cr.crop_group) = 1 THEN '(All)' ELSE cr.crop_group END AS crop_group,
@@ -44,6 +49,8 @@ ORDER BY GROUPING(cr.crop_group), cr.crop_group, GROUPING(y.decade), y.decade;
 
 -- ---------------------------------------------------------------------------
 -- Q3. Pivot: shock rate (%) per region and five-year period
+--     Question: how did each region's shock rate move over time?
+--     Grain: one row per region, one column per five-year period.
 -- ---------------------------------------------------------------------------
 SELECT region, [1990-1994], [1995-1999], [2000-2004], [2005-2009], [2010-2014]
 FROM (
@@ -58,6 +65,8 @@ ORDER BY region;
 
 -- ---------------------------------------------------------------------------
 -- Q4. Slice: climate band (country climate normal) vs. shock rate
+--     Question: which climates have the most shocks?
+--     Grain: one row per climate band.
 -- ---------------------------------------------------------------------------
 SELECT
     b.climate_band,
@@ -73,6 +82,8 @@ ORDER BY shock_rate_pct DESC;
 -- ---------------------------------------------------------------------------
 -- Q5. Dice: hot-anomaly years (> +1 C vs 1961-1990) for cereals in
 --     Sub-Saharan Africa, compared with all other cereal-years there
+--     Question: do hot years raise the shock rate of Sub-Saharan cereals?
+--     Grain: one row per anomaly group (hot / other).
 -- ---------------------------------------------------------------------------
 SELECT
     CASE WHEN f.temp_anomaly_c > 1 THEN 'anomaly > +1 C' ELSE 'anomaly <= +1 C' END AS temperature,
@@ -88,6 +99,8 @@ GROUP BY CASE WHEN f.temp_anomaly_c > 1 THEN 'anomaly > +1 C' ELSE 'anomaly <= +
 -- ---------------------------------------------------------------------------
 -- Q6. Drill-down: the 15 most shock-prone country x crop series
 --     (at least 15 observed years)
+--     Question: which individual country-crop series are most shock-prone?
+--     Grain: one row per country x crop (top 15).
 -- ---------------------------------------------------------------------------
 SELECT TOP (15)
     c.country_name,
@@ -105,6 +118,8 @@ ORDER BY shock_rate_pct DESC, shocks DESC;
 
 -- ---------------------------------------------------------------------------
 -- Q7. Shock persistence: P(shock this year | shock last year)
+--     Question: does a shock tend to follow a shock?
+--     Grain: one row per value of last year's label.
 -- ---------------------------------------------------------------------------
 SELECT
     f.prev_is_shock,
@@ -116,6 +131,8 @@ GROUP BY f.prev_is_shock;
 
 -- ---------------------------------------------------------------------------
 -- Q8. Worst global shock years: share of crop-years in shock, by year
+--     Question: which years were worst worldwide?
+--     Grain: one row per year.
 -- ---------------------------------------------------------------------------
 SELECT
     y.year,

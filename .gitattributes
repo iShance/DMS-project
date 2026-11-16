@@ -1,2 +1,4 @@
 # Keep the data files byte-for-byte as downloaded (BULK INSERT reads them directly).
-datasets/** -text
+data/** -text
+# Windows batch files need CRLF line endings.
+*.bat text eol=crlf

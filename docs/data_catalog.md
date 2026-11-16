@@ -1,7 +1,10 @@
-# Gold data catalog
+# Data catalog
 
-The Gold layer exists in SQL Server (`gold.*`) and as CSV files in `datasets/gold/` (written by
-`agripulse.pipeline`). `ml_dataset.csv` / `gold.vw_ml_dataset` is the flat table used for mining.
+The analytical tables and views. Every column of every layer, with type, nullability, source and quality
+rule, is also listed in [`data_dictionary.csv`](data_dictionary.csv).
+
+The Gold layer exists in SQL Server (`gold.*`) and as CSV files in `data/exports/` (written by
+`src.ingest.pipeline`). `ml_dataset.csv` / `gold.vw_ml_dataset` is the flat table used for mining.
 
 ## gold.fact_crop_year: one row per country x crop x year (1990-2013)
 
@@ -34,7 +37,7 @@ The Gold layer exists in SQL Server (`gold.*`) and as CSV files in `datasets/gol
 | column | description |
 |---|---|
 | country_key | surrogate key (ROW_NUMBER over the name) |
-| country_name | conformed name (`datasets/reference/country_reference.csv`) |
+| country_name | conformed name (`data/reference/country_reference.csv`) |
 | iso3 | ISO 3166-1 alpha-3 (historical codes for former states, e.g. SUN, YUG) |
 | region | World Bank region (7 regions) |
 | temp_normal_c | mean annual temperature 1961-1990 |
@@ -70,7 +73,48 @@ inclusive and the upper bound exclusive.
 | Hot | ≥ 25 | | Humid | 1,000-2,000 |
 | | | | Very humid | ≥ 2,000 |
 
-## gold.vw_ml_dataset / datasets/gold/ml_dataset.csv
+## gold.vw_ml_dataset / data/exports/ml_dataset.csv
 
 All fact measures plus the descriptive attributes `country_name, iso3, region, crop_name, crop_group,
 year, decade, climate_band, temp_band, rain_band`. 16,339 rows, 10.2 % shocks.
+
+## gold.features_shock: one row per country x crop x year
+
+The documented feature view the classifier reads (`python -m src.mining.score`): the keys
+`country_key, crop_key, year_key`, the descriptive `country_name, crop_name, region, year`, the
+features `rain_dev_pct, temp_anomaly_c, pesticide_intensity, rainfall_mm, prev_yield_dev_pct,
+prev_is_shock`, and the label `is_shock`. Feature sets A, B and C in `src/mining/helpers.py` are
+subsets of these columns.
+
+## Semantic metric views
+
+| view | grain | columns |
+|---|---|---|
+| `semantic.v_shock_rate_by_crop_region` | region x crop | region, crop_group, crop_name, crop_years, shocks, shock_rate_pct, avg_yield_dev_pct |
+| `semantic.v_shock_rate_by_climate` | climate band x pesticide use | climate_band, temp_band, rain_band, pesticide_use (low/medium/high tercile), countries, crop_years, shocks, shock_rate_pct, avg_temp_anomaly_c, avg_pesticide_intensity |
+| `semantic.v_shock_rate_by_year` | year | year, decade, crop_years, shocks, shock_rate_pct, avg_temp_anomaly_c, hot_year_share_pct |
+| `semantic.v_shock_detection` | run x model | model, role, threshold, scored_crop_years, actual_shocks, predicted_shocks, true_alarms, false_alarms, detection_rate_pct, precision_pct, false_alarm_rate_pct, test_roc_auc, test_pr_auc, is_latest_run |
+
+`semantic.metric_catalog` holds the definitions from `semantic/metrics.yml` and the result of the last
+validation (`metric_value`, `validation_value`, `validation_status`).
+
+## ml.shock_prediction: one row per run x model x test crop-year
+
+| column | description |
+|---|---|
+| run_id, model_name, model_version | which run and model produced the row |
+| country_key, crop_key, year_key | → Gold dimensions |
+| shock_probability | predicted probability of a shock |
+| predicted_shock | 1 if shock_probability ≥ the run's threshold |
+| generated_at | when the run was scored |
+
+`ml.model_run` has one row per run x model: role (baseline / improved), feature view and features,
+train and test years, threshold (chosen on CV predictions), CV ROC-AUC and the test ROC-AUC, PR-AUC,
+precision, recall and F1.
+
+## silver.reject_log and audit.load_log
+
+`silver.reject_log` has one row per Bronze row that did not reach Silver: source_table, business_key
+(the source's own key), column_name, raw_value and reason. `audit.load_log` has one row per table per
+load: batch_id, procedure_name, source_name, target_table, start and end time, rows_loaded,
+rows_rejected, status and message.

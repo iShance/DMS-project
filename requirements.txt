@@ -1,5 +1,5 @@
 # Tested with Python 3.13 and the versions in brackets.
-pandas>=2.2          # [3.1.0]
+pandas>=2.2          # [3.1.1]
 numpy>=1.26          # [2.5.4]
 scikit-learn>=1.4    # [1.9.1]
 mlxtend>=0.23        # [0.25.0]
@@ -8,6 +8,11 @@ nbformat>=5.9
 nbconvert>=7.0
 ipykernel>=6.29
 jupyterlab>=4.0
+pyyaml>=6.0          # [6.0.3]  semantic/metrics.yml
+pytest>=8.0          # [9.2.0]  tests/
 
-# Optional: read the Gold layer straight from SQL Server (agripulse.data, source="sql")
-# pyodbc>=5.0
+# SQL Server warehouse steps (src.db, src.semantic.sync_metrics, src.mining.score, tests/test_sql.py).
+# pyodbc also needs the Microsoft ODBC Driver 18 for SQL Server installed on the machine.
+sqlalchemy>=2.0      # [2.1.8]
+pyodbc>=5.0          # (tested through SQLAlchemy with pymssql instead, see .env.example)
+python-dotenv>=1.0   # [1.2.4]  reads AGRIPULSE_SQL_CONN from .env

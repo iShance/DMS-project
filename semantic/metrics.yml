@@ -1,0 +1,145 @@
+# AgriPulse semantic layer: one entry per business metric.
+#
+# Required keys: name, label, definition, owner, grain, sql, dimensions, null_policy, validation_query
+#   sql               aggregate expression evaluated as  SELECT <sql> FROM gold.fact_crop_year f
+#   validation_query  an INDEPENDENT query (rebuilt from Silver or by a different route) that must
+#                     return the same single number
+#
+# Sync to SQL and validate:  python -m src.semantic.sync_metrics   (writes semantic.metric_catalog)
+# Check the file:            pytest tests/test_metrics_yaml.py
+# The metric views that use these definitions are in sql/04_semantic.sql.
+
+metrics:
+  - name: crop_year_count
+    label: "Crop-years analysed"
+    definition: >-
+      Number of country x crop x year records in 1990-2013 that have a shock label (at least 3 of
+      the 5 previous yield years present) and rainfall, temperature and pesticide data.
+    owner: "AgriPulse project team"
+    grain: "one crop-year (gold.fact_crop_year)"
+    sql: "COUNT(*)"
+    dimensions: [crop_name, crop_group, region, climate_band, year, decade]
+    null_policy: "Rows missing any source or a baseline never reach Gold, so they are not counted."
+    validation_query: |
+      SELECT COUNT(*)
+      FROM silver.fao_yield y
+      WHERE y.year BETWEEN 1990 AND 2013
+        AND EXISTS (SELECT 1 FROM silver.country c WHERE c.country_name = y.country_name)
+        AND EXISTS (SELECT 1 FROM silver.wb_rainfall r WHERE r.country_name = y.country_name AND r.year = y.year)
+        AND EXISTS (SELECT 1 FROM silver.wb_rainfall r WHERE r.country_name = y.country_name AND r.is_imputed = 0)
+        AND EXISTS (SELECT 1 FROM silver.wb_temperature t WHERE t.country_name = y.country_name AND t.year = y.year)
+        AND (SELECT COUNT(*) FROM silver.wb_temperature t
+             WHERE t.country_name = y.country_name AND t.year BETWEEN 1961 AND 1990) >= 20
+        AND EXISTS (SELECT 1 FROM silver.fao_pesticides p WHERE p.country_name = y.country_name AND p.year = y.year)
+        AND (SELECT COUNT(*) FROM silver.fao_yield b
+             WHERE b.country_name = y.country_name AND b.crop_name = y.crop_name
+               AND b.year BETWEEN y.year - 5 AND y.year - 1) >= 3
+
+  - name: shock_count
+    label: "Yield shocks"
+    definition: >-
+      Number of crop-years whose yield is at least 15 % below the mean yield of the previous five
+      calendar years of the same country and crop.
+    owner: "AgriPulse project team"
+    grain: "one crop-year (gold.fact_crop_year)"
+    sql: "SUM(CAST(f.is_shock AS INT))"
+    dimensions: [crop_name, crop_group, region, climate_band, year, decade]
+    null_policy: "is_shock is never NULL in Gold: crop-years without a baseline are excluded upstream."
+    validation_query: |
+      SELECT SUM(CASE WHEN (v.yield_hg_ha / b.baseline - 1) * 100 <= -15 THEN 1 ELSE 0 END)
+      FROM gold.vw_ml_dataset v
+      CROSS APPLY (SELECT AVG(CAST(s.yield_hg_ha AS FLOAT)) AS baseline
+                   FROM silver.fao_yield s
+                   WHERE s.country_name = v.country_name AND s.crop_name = v.crop_name
+                     AND s.year BETWEEN v.year - 5 AND v.year - 1) b
+
+  - name: shock_rate_pct
+    label: "Shock rate (%)"
+    definition: "Share of crop-years that are yield shocks, in percent (shock_count / crop_year_count)."
+    owner: "AgriPulse project team"
+    grain: "one crop-year (gold.fact_crop_year)"
+    sql: "100.0 * AVG(CAST(f.is_shock AS FLOAT))"
+    dimensions: [crop_name, crop_group, region, climate_band, year, decade]
+    null_policy: "No NULL labels in Gold; every crop-year counts once in the denominator."
+    validation_query: |
+      SELECT 100.0 * AVG(CAST(CASE WHEN (v.yield_hg_ha / b.baseline - 1) * 100 <= -15 THEN 1 ELSE 0 END AS FLOAT))
+      FROM gold.vw_ml_dataset v
+      CROSS APPLY (SELECT AVG(CAST(s.yield_hg_ha AS FLOAT)) AS baseline
+                   FROM silver.fao_yield s
+                   WHERE s.country_name = v.country_name AND s.crop_name = v.crop_name
+                     AND s.year BETWEEN v.year - 5 AND v.year - 1) b
+
+  - name: avg_yield_dev_pct
+    label: "Average yield deviation (%)"
+    definition: >-
+      Mean percentage deviation of yield from its own previous-five-year baseline
+      (yield / baseline - 1) x 100. Positive on average because yields trend upwards.
+    owner: "AgriPulse project team"
+    grain: "one crop-year (gold.fact_crop_year)"
+    sql: "AVG(f.yield_dev_pct)"
+    dimensions: [crop_name, crop_group, region, climate_band, year, decade]
+    null_policy: "yield_dev_pct is never NULL in Gold."
+    validation_query: |
+      SELECT AVG((v.yield_hg_ha / b.baseline - 1) * 100)
+      FROM gold.vw_ml_dataset v
+      CROSS APPLY (SELECT AVG(CAST(s.yield_hg_ha AS FLOAT)) AS baseline
+                   FROM silver.fao_yield s
+                   WHERE s.country_name = v.country_name AND s.crop_name = v.crop_name
+                     AND s.year BETWEEN v.year - 5 AND v.year - 1) b
+
+  - name: shock_persistence_pct
+    label: "Shock persistence (%)"
+    definition: >-
+      Probability that a crop-year is a shock given that the same country and crop was in shock the
+      previous calendar year: P(shock | shock last year), in percent.
+    owner: "AgriPulse project team"
+    grain: "one crop-year whose previous year was a shock (gold.fact_crop_year, prev_is_shock = 1)"
+    sql: "100.0 * AVG(CASE WHEN f.prev_is_shock = 1 THEN CAST(f.is_shock AS FLOAT) END)"
+    dimensions: [crop_name, crop_group, region, decade]
+    null_policy: >-
+      Crop-years whose previous year has no label (missing yield or fewer than 3 baseline years)
+      are excluded from the denominator.
+    validation_query: |
+      SELECT 100.0 * AVG(CAST(v.is_shock AS FLOAT))
+      FROM gold.vw_ml_dataset v
+      JOIN silver.fao_yield p1
+        ON p1.country_name = v.country_name AND p1.crop_name = v.crop_name AND p1.year = v.year - 1
+      CROSS APPLY (SELECT AVG(CAST(s.yield_hg_ha AS FLOAT)) AS baseline, COUNT(*) AS n
+                   FROM silver.fao_yield s
+                   WHERE s.country_name = v.country_name AND s.crop_name = v.crop_name
+                     AND s.year BETWEEN v.year - 6 AND v.year - 2) b
+      WHERE b.n >= 3 AND (CAST(p1.yield_hg_ha AS FLOAT) / b.baseline - 1) * 100 <= -15
+
+  - name: avg_temp_anomaly_c
+    label: "Average temperature anomaly (°C)"
+    definition: >-
+      Mean difference between a country's annual temperature and its 1961-1990 mean (the WMO
+      climate normal), over the analysed crop-years.
+    owner: "AgriPulse project team"
+    grain: "one crop-year (gold.fact_crop_year)"
+    sql: "AVG(f.temp_anomaly_c)"
+    dimensions: [crop_group, region, climate_band, year, decade]
+    null_policy: "Countries with fewer than 20 normal-period years have no anomaly and are not in Gold."
+    validation_query: |
+      SELECT AVG(t.avg_temp_c - n.normal_c)
+      FROM gold.vw_ml_dataset v
+      JOIN silver.wb_temperature t ON t.country_name = v.country_name AND t.year = v.year
+      JOIN (SELECT country_name, AVG(avg_temp_c) AS normal_c
+            FROM silver.wb_temperature
+            WHERE year BETWEEN 1961 AND 1990
+            GROUP BY country_name) n ON n.country_name = v.country_name
+
+  - name: avg_pesticide_intensity
+    label: "Average pesticide intensity"
+    definition: >-
+      Mean of log10(1 + pesticide use in tonnes of active ingredients) of the country-year,
+      over the analysed crop-years.
+    owner: "AgriPulse project team"
+    grain: "one crop-year (gold.fact_crop_year)"
+    sql: "AVG(f.pesticide_intensity)"
+    dimensions: [crop_group, region, climate_band, year, decade]
+    null_policy: "Country-years without pesticide data are not in Gold."
+    validation_query: |
+      SELECT AVG(LOG10(1 + p.pesticides_tonnes))
+      FROM gold.vw_ml_dataset v
+      JOIN silver.fao_pesticides p ON p.country_name = v.country_name AND p.year = v.year

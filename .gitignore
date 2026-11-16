@@ -7,3 +7,6 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+.pytest_cache/
+# Secrets and local settings (never commit)
+.env

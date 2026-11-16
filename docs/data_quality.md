@@ -1,6 +1,6 @@
 # Data quality findings
 
-Everything below was found while profiling the four source files (`sql/07_quality_checks.sql` and
+Everything below was found while profiling the four source files (`src/quality/checks.sql` and
 notebook 01 reproduce the numbers). These findings belong in the limitations section of the paper.
 
 ## 1. The rainfall file is a static long-term average (critical)
@@ -38,7 +38,7 @@ station-based source, so the provenance should be checked before publication.
 
 ## 4. Country names differ across sources
 
-41 spellings were mapped to one conformed name (`datasets/reference/country_aliases.csv`). Examples:
+41 spellings were mapped to one conformed name (`data/reference/country_aliases.csv`). Examples:
 
 | FAO | World Bank rainfall | temperature file | conformed |
 |---|---|---|---|
@@ -53,10 +53,10 @@ station-based source, so the provenance should be checked before publication.
 
 | source | issue | handling |
 |---|---|---|
-| rainfall | 774 blank cells and 6 `..` markers; years 1988 and 2003 absent from the file | complete 1985-2017 grid, gaps filled with the country mean, `is_imputed = 1` (389 country-years; 703 Gold rows) |
+| rainfall | 774 blank cells and 6 `..` markers; years 1988 and 2003 absent from the file | the 780 cells go to `silver.reject_log`; complete 1985-2017 grid, gaps filled with the country mean, `is_imputed = 1` (389 country-years; 703 Gold rows) |
 | rainfall | some territories have no value at all (e.g. American Samoa) | country dropped |
-| temperature | 2,547 `NA` values | ignored when averaging the city records; no country-year in 1990-2013 is left empty |
-| pesticides | first year (1990) has no previous year | `pesticide_yoy_pct` is NULL (611 Gold rows); models impute the training median |
+| temperature | 2,547 blank cells | written to `silver.reject_log` and left out of the city average; no country-year in 1990-2013 is left empty |
+| pesticides | first year (1990) has no previous year | `pesticide_yoy_pct` is NULL (610 Gold rows: every 1990 row); models impute the training median |
 | yield history | first year of a series has no LAG | `prev_*` NULL (118 Gold rows); models impute the training median |
 
 ## 6. Coverage: who drops out of Gold
@@ -79,3 +79,24 @@ limits how far the results generalise to the places where an early warning matte
 `yield_dev_pct` reaches +678 % and `pesticide_yoy_pct` +36,571 %, because of tiny starting values and
 series revisions. The classifiers are tree-based or scaled, so they tolerate this. The linear
 regression target is winsorised at the 1st and 99th training percentiles.
+
+## 8. Rejected rows and reconciliation
+
+Silver keeps every Bronze row it does not use in `silver.reject_log`, with the source table, the
+source's own key, the failing column, the raw value and the rule. The pandas pipeline builds the same
+log (`pipeline.build_silver()["reject_log"]`) and `tests/test_sql.py` checks that the two match row
+for row.
+
+| source | rule | rows |
+|---|---|---|
+| `bronze.fao_yield` | FAO China aggregate (area 351) double counts its parts | 448 |
+| `bronze.fao_yield` | missing or zero yield (FAO missing record) | 8 |
+| `bronze.wb_rainfall` | missing or non-numeric rainfall (blank or `..`) | 780 |
+| `bronze.wb_temperature` | missing or non-numeric temperature | 2,547 |
+| pesticides, country reference, aliases | – | 0 |
+
+The check `bronze_rows_equal_kept_rows_plus_rejects` (`src/quality/checks.sql`) proves that no row
+is lost silently: for every source, Bronze rows = rows kept in Silver + rejected rows. For rainfall the
+kept rows are the observed (not imputed) cells; for temperature they are the city records that were
+averaged. Every load also writes one row per table to `audit.load_log` (rows loaded, rows rejected,
+SUCCESS or FAILED).
