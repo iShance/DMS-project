@@ -254,18 +254,47 @@ function Find-SqlServerInstance {
 }
 
 function Find-Ssms {
-    $roots = @($env:ProgramFiles, ${env:ProgramFiles(x86)}) | Where-Object { $_ }
+    # 1. on the PATH
+    $onPath = Get-Command "ssms.exe" -ErrorAction SilentlyContinue
+    if ($onPath) { return $onPath.Source }
+
+    # 2. registered application path
+    foreach ($hive in @("HKLM:", "HKCU:")) {
+        try {
+            $key = Get-Item -Path ($hive + "\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\ssms.exe") -ErrorAction Stop
+            $exe = "$($key.GetValue(''))".Trim('"')
+            if ($exe -and (Test-Path $exe)) { return $exe }
+        } catch { }
+    }
+
+    # 3. the usual install folders (64-bit and 32-bit Program Files)
+    $roots = @($env:ProgramW6432, $env:ProgramFiles, ${env:ProgramFiles(x86)}, "C:\Program Files", "C:\Program Files (x86)") |
+        Where-Object { $_ } | Select-Object -Unique
     foreach ($root in $roots) {
         # SSMS 18 and later: <Program Files>\Microsoft SQL Server Management Studio <version>\...\Ssms.exe
         $dirs = @(Get-ChildItem -Path $root -Directory -Filter "Microsoft SQL Server Management Studio*" -ErrorAction SilentlyContinue)
         foreach ($d in $dirs) {
-            $exe = Get-ChildItem -Path $d.FullName -Recurse -Filter "Ssms.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($exe) { return $exe.FullName }
+            $found = Get-ChildItem -Path $d.FullName -Recurse -Filter "Ssms.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) { return $found.FullName }
         }
         # SSMS 17 and earlier: <Program Files>\Microsoft SQL Server\<nnn>\Tools\Binn\ManagementStudio\Ssms.exe
         $old = Get-ChildItem -Path (Join-Path $root "Microsoft SQL Server\*\Tools\Binn\ManagementStudio\Ssms.exe") -ErrorAction SilentlyContinue | Select-Object -First 1
         if ($old) { return $old.FullName }
     }
+
+    # 4. the Start menu shortcut, wherever SSMS was installed
+    try {
+        $shell = New-Object -ComObject WScript.Shell
+        $menus = @((Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs"),
+                   (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"))
+        foreach ($menu in $menus) {
+            $links = @(Get-ChildItem -Path $menu -Recurse -Filter "*Management Studio*.lnk" -ErrorAction SilentlyContinue)
+            foreach ($link in $links) {
+                $target = $shell.CreateShortcut($link.FullName).TargetPath
+                if ($target -and ($target -like "*ssms*.exe") -and (Test-Path $target)) { return $target }
+            }
+        }
+    } catch { }
     return ""
 }
 
@@ -337,7 +366,11 @@ if ($IsWin) {
     }
 }
 if ($ssms) { Write-Ok "SSMS found: $ssms"; $Summary["SSMS"] = "found" }
-else { Write-Note "SSMS not found. The database will still be built; install SSMS to show it."; $Summary["SSMS"] = "NOT FOUND" }
+else {
+    Write-Note "SSMS not found. The database will still be built."
+    Write-Info "If SSMS is installed, open it from the Start menu; otherwise install it: https://aka.ms/ssmsfullsetup"
+    $Summary["SSMS"] = "NOT FOUND - open SSMS from the Start menu"
+}
 
 # ---------------------------------------------------------------------------
 Write-Step 3 "Copy the data files to $DataTarget"
@@ -479,6 +512,15 @@ if ($NoOpen -or -not $IsWin) {
         if ($SqlUser) { $ssmsArgs += @("-U", $SqlUser) } else { $ssmsArgs += "-E" }
         try { Start-Process -FilePath $ssms -ArgumentList ($files + $ssmsArgs); $opened += "SSMS" }
         catch { Write-Note "Could not start SSMS: $($_.Exception.Message)" }
+    } else {
+        # no SSMS found: open the scripts with whatever program Windows uses for .sql files
+        foreach ($f in @("01_bronze.sql", "02_silver.sql", "03_gold.sql", "demo_queries.sql")) {
+            $path = Join-Path $SqlDir $f
+            try { Start-Process -FilePath $path; $opened += $f }
+            catch {
+                try { Start-Process notepad.exe -ArgumentList ('"' + $path + '"'); $opened += $f } catch { }
+            }
+        }
     }
     $docs = @("docs\bronze_report.docx", "docs\silver_report.docx", "docs\gold_report.docx",
               "docs\PROJECT_SPEC.md", "docs\data_source_register.csv")
@@ -493,6 +535,10 @@ if ($NoOpen -or -not $IsWin) {
     try { Start-Process explorer.exe -ArgumentList ('"' + $ProjectRoot + '"'); $opened += "project folder" } catch { }
     Write-Ok ("Opened: " + ($opened -join ", "))
     if ($ssms) { Write-Info "In SSMS: open Databases > AgriPulse > Tables to show the bronze, silver and gold tables." }
+    else {
+        Write-Info "Open SSMS from the Start menu. Server name: $($script:ServerName)   Authentication: Windows Authentication"
+        Write-Info "Then: Databases > AgriPulse > Tables, and File > Open > File for the .sql scripts in the sql folder."
+    }
     $Summary["Opened"] = ($opened -join ", ")
 } else {
     $Summary["Opened"] = "nothing (you said no)"
