@@ -10,3 +10,5 @@ Thumbs.db
 .pytest_cache/
 # Secrets and local settings (never commit)
 .env
+# Log written by START_HERE.bat
+setup_log.txt

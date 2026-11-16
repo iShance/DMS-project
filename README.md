@@ -66,8 +66,10 @@ What to have open on grading day, in the order of the instructor's list:
 | Gold database | SSMS: `gold.*` star schema (4 dimensions + `fact_crop_year`) |
 | Gold report | `docs/gold_report.docx` |
 
-Build the database on the lab PC beforehand: `build_database.bat` (see "Option B" below), then run
-`src/quality/checks.sql` in SSMS to show that every check returns no rows.
+**On the lab PC, double-click `START_HERE.bat`.** It checks for SQL Server and SSMS (and offers to
+install them if missing), builds and loads the database, runs the 13 quality checks, and opens SSMS
+with the scripts and `sql/demo_queries.sql`, plus the three reports. Study guides for the team:
+`docs/AgriPulse_Study_Guide.pdf` (English) and `docs/AgriPulse_Study_Guide_AR.pdf` (Arabic).
 
 ## Repository layout
 
@@ -88,6 +90,7 @@ sql/
   06_analytics.sql       OLAP: ROLLUP, CUBE, PIVOT, slice, dice, drill-down
   07_ml_outputs.sql      ml.model_run, ml.shock_prediction, semantic.v_shock_detection
   run_all.sql            builds and loads everything (SQLCMD mode)
+  demo_queries.sql       the queries to run during the presentation
 semantic/
   metrics.yml            the 7 business metrics: definition, owner, grain, SQL, validation query
 src/
@@ -116,7 +119,8 @@ reports/
   tables/        result tables (CSV)
 docs/
   bronze_report.docx, silver_report.docx, gold_report.docx   one report per layer
-  AgriPulse_Study_Guide.pdf  the whole project explained for the team (concepts, layers, demo, Q&A)
+  AgriPulse_Study_Guide.pdf     the whole project explained for the team (concepts, layers, demo, Q&A)
+  AgriPulse_Study_Guide_AR.pdf  the same guide in Arabic, in simple words
   PROJECT_SPEC.md           problem, questions, layers, checklists, milestones
   architecture.md           layers, rules, star schema
   data_catalog.md           Gold, semantic and ml columns
@@ -124,7 +128,9 @@ docs/
   data_source_register.csv  sources: links, owner, licence, grain, keys, volume, missing values
   data_quality.md           source issues, how they were handled, rejected rows
   naming_conventions.md     schema, table, key and column names
-build_database.bat   builds the SQL Server database on a Windows PC in one step
+START_HERE.bat       one click: checks/installs what is needed, builds the database, opens everything
+setup/START_HERE.ps1 the code behind START_HERE.bat
+build_database.bat   builds only the SQL Server database (needs sqlcmd)
 ```
 
 ## How to run
@@ -150,7 +156,21 @@ python -m src.mining.score --dry-run   # train and evaluate the scoring model, w
 
 ### Option B: SQL Server warehouse (SQL Server 2017+ on Windows)
 
-**One step:** double-click `build_database.bat`, or run it from a terminal in the project root:
+**Easiest: double-click `START_HERE.bat`.** It runs seven steps and asks before installing anything:
+
+1. find SQL Server; install SQL Server 2022 Express with winget if there is none
+2. find SSMS; install it if it is missing
+3. copy `data\` to `C:\AgriPulse\data` and let the SQL Server service read it
+4. build and load the database (talks to SQL Server from PowerShell, so sqlcmd is not needed)
+5. run the 13 data-quality checks
+6. optional: Python and `requirements.txt` for the notebooks
+7. open SSMS with `01_bronze.sql`, `02_silver.sql`, `03_gold.sql`, `demo_queries.sql`, the three
+   reports, `PROJECT_SPEC.md`, the source register and the project folder
+
+Options: `-Server .\SQLEXPRESS`, `-DataTarget D:\AgriPulse\data`, `-NoInstall`, `-NoOpen`, `-Yes`.
+Everything it prints is saved in `setup_log.txt`.
+
+**Only the database, with sqlcmd:** double-click `build_database.bat`, or run it from a terminal in the project root:
 
 ```bat
 build_database.bat                 :: default instance (localhost)
