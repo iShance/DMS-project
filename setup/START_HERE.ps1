@@ -506,11 +506,22 @@ if ($NoOpen -or -not $IsWin) {
 } elseif (Confirm-Step "Open SSMS with the scripts, the three reports and the project folder now?") {
     $opened = @()
     if ($ssms) {
-        $files = @("01_bronze.sql", "02_silver.sql", "03_gold.sql", "demo_queries.sql") |
-            ForEach-Object { '"' + (Join-Path $SqlDir $_) + '"' }
-        $ssmsArgs = @("-S", ('"' + $script:ServerName + '"'), "-d", "AgriPulse", "-nosplash")
-        if ($SqlUser) { $ssmsArgs += @("-U", $SqlUser) } else { $ssmsArgs += "-E" }
-        try { Start-Process -FilePath $ssms -ArgumentList ($files + $ssmsArgs); $opened += "SSMS" }
+        $scriptPaths = @("01_bronze.sql", "02_silver.sql", "03_gold.sql", "demo_queries.sql") |
+            ForEach-Object { Join-Path $SqlDir $_ }
+        # SSMS 21 and later changed the command line: no -E (Windows authentication is the
+        # default), -C trusts the local server certificate, script files are comma-separated.
+        $ssmsMajor = 0
+        if ($ssms -match 'Management Studio (\d+)') { $ssmsMajor = [int]$Matches[1] }
+        $newSsms = ($ssmsMajor -ge 21) -or ($ssms -match '\\Release\\')
+        if ($newSsms) {
+            $ssmsArgs = @(('"' + ($scriptPaths -join ",") + '"'), "-S", ('"' + $script:ServerName + '"'), "-d", "AgriPulse", "-C")
+            if ($SqlUser) { $ssmsArgs += @("-U", $SqlUser, "-A", "SqlPassword") }
+        } else {
+            $ssmsArgs = @($scriptPaths | ForEach-Object { '"' + $_ + '"' })
+            $ssmsArgs += @("-S", ('"' + $script:ServerName + '"'), "-d", "AgriPulse", "-nosplash")
+            if ($SqlUser) { $ssmsArgs += @("-U", $SqlUser) } else { $ssmsArgs += "-E" }
+        }
+        try { Start-Process -FilePath $ssms -ArgumentList $ssmsArgs; $opened += "SSMS" }
         catch { Write-Note "Could not start SSMS: $($_.Exception.Message)" }
     } else {
         # no SSMS found: open the scripts with whatever program Windows uses for .sql files
@@ -534,7 +545,11 @@ if ($NoOpen -or -not $IsWin) {
     }
     try { Start-Process explorer.exe -ArgumentList ('"' + $ProjectRoot + '"'); $opened += "project folder" } catch { }
     Write-Ok ("Opened: " + ($opened -join ", "))
-    if ($ssms) { Write-Info "In SSMS: open Databases > AgriPulse > Tables to show the bronze, silver and gold tables." }
+    if ($ssms) {
+        Write-Info "In SSMS: open Databases > AgriPulse > Tables to show the bronze, silver and gold tables."
+        Write-Info "If SSMS asks you to connect: Server name $($script:ServerName), Windows Authentication,"
+        Write-Info "tick 'Trust server certificate', then Connect."
+    }
     else {
         Write-Info "Open SSMS from the Start menu. Server name: $($script:ServerName)   Authentication: Windows Authentication"
         Write-Info "Then: Databases > AgriPulse > Tables, and File > Open > File for the .sql scripts in the sql folder."
