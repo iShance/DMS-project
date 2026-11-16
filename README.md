@@ -71,6 +71,13 @@ install them if missing), builds and loads the database, runs the 13 quality che
 with the scripts and `sql/demo_queries.sql`, plus the three reports. Study guides for the team:
 `docs/AgriPulse_Study_Guide.pdf` (English) and `docs/AgriPulse_Study_Guide_AR.pdf` (Arabic).
 
+### No laptop? Run everything in the browser (tablet)
+
+Open **https://codespaces.new/iShance/DMS-project** in the browser (sign in to GitHub) and create the
+codespace. A real SQL Server 2022 starts next to VS Code in the browser and the warehouse builds itself
+in about a minute; the SQL Server panel on the left browses the tables like SSMS. Steps:
+[`docs/CODESPACES.md`](docs/CODESPACES.md).
+
 ## Repository layout
 
 The folders follow the course skeleton (`DM_DW_Project_Skeleton_SQLServer`).

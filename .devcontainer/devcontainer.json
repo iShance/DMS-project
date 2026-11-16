@@ -1,0 +1,45 @@
+{
+  "name": "AgriPulse - SQL Server in the browser",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "4gb"
+  },
+  "postCreateCommand": "pip install --user --disable-pip-version-check pymssql",
+  "postStartCommand": "python setup/build_on_linux.py",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-mssql.mssql",
+        "tomoki1207.pdf",
+        "mechatroner.rainbow-csv"
+      ],
+      "settings": {
+        "mssql.connections": [
+          {
+            "profileName": "AgriPulse (Codespace)",
+            "server": "localhost,1433",
+            "database": "AgriPulse",
+            "authenticationType": "SqlLogin",
+            "user": "sa",
+            "password": "AgriPulse!2026",
+            "savePassword": true,
+            "trustServerCertificate": true,
+            "encrypt": "Optional"
+          }
+        ]
+      }
+    },
+    "codespaces": {
+      "openFiles": [
+        "docs/CODESPACES.md",
+        "sql/01_bronze.sql",
+        "sql/02_silver.sql",
+        "sql/03_gold.sql",
+        "sql/demo_queries.sql"
+      ]
+    }
+  }
+}
