@@ -12,3 +12,5 @@ Thumbs.db
 .env
 # Log written by START_HERE.bat
 setup_log.txt
+# Codespaces: data prepared by setup/build_on_linux.py
+.codespace/
