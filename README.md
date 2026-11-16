@@ -116,6 +116,7 @@ reports/
   tables/        result tables (CSV)
 docs/
   bronze_report.docx, silver_report.docx, gold_report.docx   one report per layer
+  AgriPulse_Study_Guide.pdf  the whole project explained for the team (concepts, layers, demo, Q&A)
   PROJECT_SPEC.md           problem, questions, layers, checklists, milestones
   architecture.md           layers, rules, star schema
   data_catalog.md           Gold, semantic and ml columns
