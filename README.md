@@ -58,13 +58,13 @@ What to have open on grading day, in the order of the instructor's list:
 | Idea, question | `docs/PROJECT_SPEC.md` (problem statement and business questions) |
 | Bronze SQL script | `sql/01_bronze.sql` (+ `sql/00_init.sql`) |
 | Bronze database | SSMS: `AgriPulse` → `bronze.*` tables (6 tables) |
-| Bronze report | `docs/bronze_report.docx` |
+| Bronze report | `docs/bronze_report.docx` (PDF copy: `docs/bronze_report.pdf`) |
 | Silver SQL script | `sql/02_silver.sql` |
 | Silver database | SSMS: `silver.*` tables, incl. `silver.reject_log` |
-| Silver report | `docs/silver_report.docx` |
+| Silver report | `docs/silver_report.docx` (PDF copy: `docs/silver_report.pdf`) |
 | Gold script | `sql/03_gold.sql` (+ `sql/05_feature_views.sql`) |
 | Gold database | SSMS: `gold.*` star schema (4 dimensions + `fact_crop_year`) |
-| Gold report | `docs/gold_report.docx` |
+| Gold report | `docs/gold_report.docx` (PDF copy: `docs/gold_report.pdf`) |
 
 **On the lab PC, double-click `START_HERE.bat`.** It checks for SQL Server and SSMS (and offers to
 install them if missing), builds and loads the database, runs the 13 quality checks, and opens SSMS
@@ -75,8 +75,9 @@ with the scripts and `sql/demo_queries.sql`, plus the three reports. Study guide
 
 Open **https://codespaces.new/iShance/DMS-project** in the browser (sign in to GitHub) and create the
 codespace. A real SQL Server 2022 starts next to VS Code in the browser and the warehouse builds itself
-in about a minute; the SQL Server panel on the left browses the tables like SSMS. Steps:
-[`docs/CODESPACES.md`](docs/CODESPACES.md).
+in about a minute; the SQL Server panel on the left browses the tables like SSMS. Every file for the
+presentation opens as a tab, and the three reports are also available as PDF (`docs/*_report.pdf`), which
+both the codespace and GitHub display. Steps: [`docs/CODESPACES.md`](docs/CODESPACES.md).
 
 ## Repository layout
 

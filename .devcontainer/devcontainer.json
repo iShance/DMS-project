@@ -29,15 +29,23 @@
             "trustServerCertificate": true,
             "encrypt": "Optional"
           }
-        ]
+        ],
+        "workbench.editorAssociations": {
+          "*.md": "vscode.markdown.preview.editor"
+        }
       }
     },
     "codespaces": {
       "openFiles": [
         "docs/CODESPACES.md",
+        "docs/PROJECT_SPEC.md",
+        "docs/data_source_register.csv",
         "sql/01_bronze.sql",
+        "docs/bronze_report.pdf",
         "sql/02_silver.sql",
+        "docs/silver_report.pdf",
         "sql/03_gold.sql",
+        "docs/gold_report.pdf",
         "sql/demo_queries.sql"
       ]
     }
